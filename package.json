@@ -1,0 +1,17 @@
+{
+  "name": "duogrow",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n web,api -c cyan,green \"npm --prefix web run dev\" \"npm --prefix server run dev\"",
+    "dev:api": "npm --prefix server run dev",
+    "dev:web": "npm --prefix web run dev",
+    "seed": "npm --prefix server run seed",
+    "reset": "npm --prefix server run seed",
+    "build": "npm --prefix web run build",
+    "typecheck": "npm --prefix server run typecheck && npm --prefix web run typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

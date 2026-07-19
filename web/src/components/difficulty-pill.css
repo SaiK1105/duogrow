@@ -1,0 +1,29 @@
+.diff-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-micro);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.diff-pill--easy {
+  color: var(--accent-300);
+  background: var(--confidence-high-bg);
+  border-color: color-mix(in oklch, var(--accent-500) 40%, transparent);
+}
+
+.diff-pill--medium {
+  color: var(--warn-400);
+  background: var(--confidence-medium-bg);
+  border-color: color-mix(in oklch, var(--warn-500) 40%, transparent);
+}
+
+.diff-pill--hard {
+  color: var(--danger-400);
+  background: var(--confidence-low-bg);
+  border-color: color-mix(in oklch, var(--danger-500) 40%, transparent);
+}

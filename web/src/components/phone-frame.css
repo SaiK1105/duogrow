@@ -1,0 +1,123 @@
+.phone-shell {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.phone-frame {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-void);
+  overflow: hidden;
+}
+
+.phone-statusbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-6) var(--space-1);
+  font-family: var(--font-ui);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.phone-statusbar__time {
+  letter-spacing: 0.02em;
+}
+
+.phone-statusbar__glyphs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.glyph-signal,
+.glyph-wifi,
+.glyph-battery {
+  display: inline-block;
+  background: var(--text-tertiary);
+  border-radius: 2px;
+}
+
+.glyph-signal {
+  width: 16px;
+  height: 10px;
+  clip-path: polygon(0 100%, 20% 100%, 20% 60%, 45% 60%, 45% 30%, 70% 30%, 70% 0, 100% 0, 100% 100%);
+}
+
+.glyph-wifi {
+  width: 14px;
+  height: 10px;
+  clip-path: polygon(50% 100%, 0 35%, 20% 20%, 50% 45%, 80% 20%, 100% 35%);
+}
+
+.glyph-battery {
+  width: 22px;
+  height: 11px;
+  border-radius: 3px;
+  position: relative;
+  background: transparent;
+  border: 1.5px solid var(--text-tertiary);
+}
+
+.glyph-battery::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  width: 60%;
+  border-radius: 1px;
+  background: var(--accent-500);
+}
+
+.glyph-battery::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 3px;
+  width: 2px;
+  height: 4px;
+  border-radius: 0 1px 1px 0;
+  background: var(--text-tertiary);
+}
+
+.phone-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Framed look on >= 480px */
+@media (min-width: 480px) {
+  .phone-shell {
+    padding: var(--space-6) var(--space-4);
+    align-items: center;
+  }
+
+  .phone-frame {
+    min-height: min(880px, calc(100dvh - 3rem));
+    max-height: calc(100dvh - 3rem);
+    border-radius: var(--radius-phone);
+    border: 1px solid var(--surface-border-strong);
+    background: var(--surface-base);
+    box-shadow:
+      var(--shadow-modal),
+      0 0 0 6px oklch(20% 0.02 155 / 0.6),
+      inset 0 1px 0 0 oklch(45% 0.02 155 / 0.35);
+  }
+
+  .phone-statusbar {
+    padding-top: var(--space-4);
+  }
+}

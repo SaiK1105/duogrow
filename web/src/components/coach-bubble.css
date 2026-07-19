@@ -1,0 +1,52 @@
+.coach {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  border-top-left-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-card);
+}
+
+.coach--celebrate {
+  border-color: color-mix(in oklch, var(--accent-500) 35%, transparent);
+  box-shadow: var(--shadow-card), var(--glow-accent-sm);
+}
+
+.coach--warn {
+  border-color: color-mix(in oklch, var(--warn-500) 35%, transparent);
+}
+
+.coach__avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: var(--radius-full);
+  background: var(--surface-overlay);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.coach__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.coach__name {
+  font-size: var(--text-micro);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--accent-300);
+}
+
+.coach__message {
+  font-size: var(--text-body);
+  line-height: var(--leading-snug);
+  color: var(--text-secondary);
+}

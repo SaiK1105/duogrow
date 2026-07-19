@@ -1,0 +1,213 @@
+.upload {
+  gap: var(--space-4);
+}
+
+.upload__title {
+  font-size: var(--text-display-md);
+}
+
+.upload__sub {
+  font-size: var(--text-caption);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.upload__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.upload__preview {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--surface-border-strong);
+  background: var(--surface-void);
+}
+
+.upload__preview-img {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+}
+
+.upload__change {
+  position: absolute;
+  bottom: var(--space-3);
+  right: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  background: color-mix(in oklch, var(--surface-void) 78%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--surface-border-strong);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.upload__change:hover {
+  color: var(--text-primary);
+}
+
+.upload__recent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.upload__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.upload__thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  transition: transform var(--duration-fast) var(--ease-out-expo);
+}
+
+.upload__thumb:hover {
+  transform: translateY(-2px);
+}
+
+.upload__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload__thumb-band {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 4px;
+}
+
+.upload__thumb--high .upload__thumb-band {
+  background: var(--confidence-high);
+}
+
+.upload__thumb--medium .upload__thumb-band {
+  background: var(--confidence-medium);
+}
+
+.upload__thumb--low .upload__thumb-band {
+  background: var(--confidence-low);
+}
+
+/* ===== Analyzing overlay ===== */
+.analyzing {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  background: color-mix(in oklch, var(--surface-void) 92%, transparent);
+  backdrop-filter: blur(10px);
+  animation: screen-in var(--duration-normal) var(--ease-out-expo);
+}
+
+.analyzing__frame {
+  position: relative;
+  width: 100%;
+  max-width: 260px;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--accent-600);
+  box-shadow: var(--glow-accent-md);
+}
+
+.analyzing__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.85) brightness(0.85);
+}
+
+.analyzing__scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 44%;
+  background: linear-gradient(to bottom, transparent, var(--accent-glow), transparent);
+  mix-blend-mode: screen;
+  animation: scan-sweep 1.8s var(--ease-in-out) infinite;
+}
+
+.analyzing__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--accent-glow) 1px, transparent 1px),
+    linear-gradient(90deg, var(--accent-glow) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.12;
+}
+
+.analyzing__label {
+  font-family: var(--font-display);
+  font-size: var(--text-body-lg);
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+  min-height: 1.6em;
+}
+
+.analyzing__dots {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.analyzing__dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent-500);
+  animation: dot-bounce 1.2s var(--ease-in-out) infinite;
+}
+
+.analyzing__dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.analyzing__dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes scan-sweep {
+  0% {
+    transform: translateY(-110%);
+  }
+  100% {
+    transform: translateY(230%);
+  }
+}
+
+@keyframes dot-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analyzing__scan,
+  .analyzing__dots span {
+    animation: none;
+  }
+}

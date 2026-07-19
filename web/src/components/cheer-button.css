@@ -1,0 +1,70 @@
+.cheer-btn {
+  position: relative;
+  overflow: visible;
+}
+
+.cheer-btn__emoji {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.cheer-btn:active .cheer-btn__emoji {
+  animation: cheer-pop 260ms var(--ease-spring);
+}
+
+.cheer-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.cheer-particle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px;
+  border-radius: var(--radius-full);
+  background: var(--accent-400);
+  box-shadow: 0 0 8px var(--accent-glow);
+  animation: cheer-fly 720ms var(--ease-out-expo) forwards;
+}
+
+.cheer-particle:nth-child(even) {
+  background: var(--partner-400);
+  box-shadow: 0 0 8px var(--partner-glow);
+}
+
+@keyframes cheer-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.4) rotate(12deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes cheer-fly {
+  0% {
+    transform: rotate(var(--angle)) translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--angle)) translateY(-46px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cheer-particle {
+    animation: none;
+    opacity: 0;
+  }
+}

@@ -1,0 +1,92 @@
+.stamp {
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+}
+
+.stamp--high {
+  color: var(--confidence-high);
+}
+
+.stamp--medium {
+  color: var(--confidence-medium);
+}
+
+.stamp--low {
+  color: var(--confidence-low);
+}
+
+.stamp__svg {
+  overflow: visible;
+  animation: stamp-pop var(--duration-slow) var(--ease-spring) both;
+}
+
+.stamp__halo {
+  fill: currentColor;
+  opacity: 0.14;
+}
+
+.stamp--high .stamp__halo {
+  filter: drop-shadow(0 0 22px var(--accent-glow));
+}
+
+.stamp__ring {
+  animation: stamp-draw var(--duration-slow) var(--ease-out-expo) forwards;
+  animation-delay: 120ms;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.stamp__glyph {
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: stamp-draw var(--duration-normal) var(--ease-out-expo) forwards;
+  animation-delay: 460ms;
+}
+
+.stamp__glyph-dot {
+  opacity: 0;
+  animation: stamp-fade var(--duration-fast) ease forwards;
+  animation-delay: 700ms;
+}
+
+@keyframes stamp-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes stamp-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes stamp-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp__svg,
+  .stamp__ring,
+  .stamp__glyph,
+  .stamp__glyph-dot {
+    animation: none;
+  }
+  .stamp__ring,
+  .stamp__glyph {
+    stroke-dashoffset: 0;
+  }
+  .stamp__glyph-dot {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,86 @@
+.tab-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 50;
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  margin-top: auto;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--surface-void) 30%, transparent);
+}
+
+.tab-bar__pill {
+  pointer-events: auto;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto 1fr 1fr;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  background: color-mix(in oklch, var(--surface-overlay) 88%, transparent);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-modal);
+  backdrop-filter: blur(16px);
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-2) 0;
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  transition:
+    color var(--duration-fast) var(--ease-out-expo),
+    transform var(--duration-fast) var(--ease-out-expo);
+}
+
+.tab__label {
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tab__icon {
+  display: grid;
+  place-items: center;
+  transition: filter var(--duration-fast) var(--ease-out-expo);
+}
+
+.tab:hover {
+  color: var(--text-secondary);
+}
+
+.tab--active {
+  color: var(--accent-300);
+}
+
+.tab--active .tab__icon {
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+
+.tab-fab {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin-top: -22px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(160deg, var(--accent-400), var(--accent-600));
+  color: var(--text-on-accent);
+  border: 3px solid var(--surface-void);
+  box-shadow: var(--glow-accent-md);
+  transition:
+    transform var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out-expo);
+}
+
+.tab-fab:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: var(--glow-accent-lg);
+}
+
+.tab-fab:active {
+  transform: scale(0.94);
+}

@@ -1,0 +1,124 @@
+.mrow {
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  border: 1px solid var(--surface-border);
+  overflow: hidden;
+}
+
+.mrow__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  color: inherit;
+}
+
+.mrow__main--pressable {
+  transition: background var(--duration-fast) var(--ease-out-expo);
+}
+
+.mrow__main--pressable:hover {
+  background: var(--surface-overlay);
+}
+
+.mrow__lead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.mrow__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: var(--radius-md);
+  background: var(--surface-overlay);
+  color: var(--accent-300);
+}
+
+.mrow__label {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mrow__sides {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+.mrow__side {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 3.9rem;
+  justify-content: flex-end;
+}
+
+.mrow__value {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.mrow__side--partner .mrow__value {
+  color: var(--text-tertiary);
+}
+
+.mrow__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--surface-border);
+}
+
+.mrow__status {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: var(--radius-full);
+}
+
+.mrow__status.is-done {
+  color: var(--text-on-accent);
+  background: var(--accent-500);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.mrow__side--partner .mrow__status.is-done {
+  background: var(--partner-500);
+  box-shadow: 0 0 8px var(--partner-glow);
+}
+
+.mrow__status.is-pending {
+  background: var(--surface-overlay);
+  border: 1px solid var(--surface-border-strong);
+}
+
+.mrow__pending-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--text-disabled);
+}
+
+.mrow__action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  border-top: 1px solid var(--surface-border);
+  background: color-mix(in oklch, var(--surface-overlay) 40%, transparent);
+}

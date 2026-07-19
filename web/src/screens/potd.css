@@ -1,0 +1,203 @@
+.potd {
+  gap: var(--space-5);
+}
+
+.potd__title {
+  font-size: var(--text-display-md);
+}
+
+.potd__sub {
+  font-size: var(--text-caption);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.potd__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(140% 90% at 0% 0%, oklch(22% 0.03 150 / 0.5), transparent 55%),
+    var(--surface-raised);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-card);
+}
+
+.potd__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.potd__topic {
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--info-400);
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-full);
+  background: oklch(78% 0.1 231 / 0.12);
+}
+
+.potd__q-title {
+  font-size: var(--text-display-md);
+  line-height: var(--leading-tight);
+}
+
+.potd__body {
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  color: var(--text-secondary);
+}
+
+.potd__more {
+  align-self: flex-start;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--accent-300);
+}
+
+.potd__more:hover {
+  color: var(--accent-200);
+}
+
+.potd__provenance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--surface-border);
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.potd__source {
+  font-size: var(--text-caption);
+  font-style: italic;
+  color: var(--accent-300);
+}
+
+.potd__partner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-caption);
+  color: var(--text-tertiary);
+}
+
+.potd__partner-chip {
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-micro);
+  font-weight: 700;
+  background: var(--surface-overlay);
+  color: var(--text-tertiary);
+}
+
+.potd__partner-chip.is-solved {
+  background: var(--confidence-high-bg);
+  color: var(--accent-200);
+}
+
+.potd__bank {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.potd__bank-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.potd__import {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--accent-300);
+}
+
+.potd__import:hover:not(:disabled) {
+  color: var(--accent-200);
+}
+
+.potd__import:disabled {
+  color: var(--text-disabled);
+}
+
+.potd__import-input {
+  display: none;
+}
+
+.potd__bank-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.potd__bank-empty {
+  font-size: var(--text-caption);
+  color: var(--text-tertiary);
+  padding: var(--space-4);
+  text-align: center;
+  border: 1px dashed var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.potd__bank-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  border: 1px solid var(--surface-border);
+}
+
+.potd__bank-check {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: var(--radius-full);
+  background: var(--surface-overlay);
+  border: 1px solid var(--surface-border-strong);
+  color: var(--text-on-accent);
+}
+
+.potd__bank-check.is-solved {
+  background: var(--accent-500);
+  border-color: transparent;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.potd__bank-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.potd__skeleton {
+  height: 240px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(100deg, var(--surface-base), var(--surface-raised), var(--surface-base));
+  background-size: 200% 100%;
+  animation: today-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .potd__skeleton {
+    animation: none;
+  }
+}

@@ -1,0 +1,131 @@
+.today {
+  gap: var(--space-4);
+}
+
+.today__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.today__greeting {
+  font-family: var(--font-display);
+  font-size: var(--text-display-md);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+}
+
+.today__greeting span {
+  color: var(--accent-300);
+}
+
+.today__date {
+  font-size: var(--text-caption);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.today__legend {
+  display: flex;
+  gap: var(--space-5);
+  padding: 0 var(--space-1);
+}
+
+.today__legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-caption);
+  color: var(--text-tertiary);
+}
+
+.today__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+}
+
+.today__dot--you {
+  background: var(--accent-500);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.today__dot--partner {
+  background: var(--partner-500);
+  box-shadow: 0 0 8px var(--partner-glow);
+}
+
+.today__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.today__stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.today__step-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  background: var(--surface-highlight);
+  color: var(--text-secondary);
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.today__step-btn:hover {
+  background: var(--accent-600);
+  color: var(--text-on-accent);
+}
+
+.today__step-count {
+  min-width: 1.4rem;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.today__actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.today__upload {
+  flex: 1;
+}
+
+.today__skeleton {
+  height: 96px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(100deg, var(--surface-base), var(--surface-raised), var(--surface-base));
+  background-size: 200% 100%;
+  animation: today-shimmer 1.4s ease-in-out infinite;
+}
+
+.today__skeleton--tall {
+  height: 220px;
+}
+
+@keyframes today-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today__skeleton {
+    animation: none;
+  }
+}

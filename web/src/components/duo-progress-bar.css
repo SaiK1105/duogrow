@@ -1,0 +1,123 @@
+.duobar {
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(120% 140% at 100% 0%, oklch(22% 0.03 150 / 0.6), transparent 55%),
+    var(--surface-raised);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-card);
+}
+
+.duobar__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.duobar__eyebrow {
+  display: block;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.duobar__hint {
+  display: block;
+  font-size: var(--text-micro);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.duobar__big {
+  font-family: var(--font-display);
+  font-size: var(--text-display-lg);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+  color: var(--accent-300);
+  text-shadow: 0 0 24px var(--accent-glow);
+  font-variant-numeric: tabular-nums;
+}
+
+.duobar__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.duobar__row {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr 2.5rem;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.duobar__name {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.duobar__track {
+  position: relative;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--surface-void);
+  overflow: hidden;
+}
+
+.duobar__fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: var(--radius-full);
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform var(--duration-slow) var(--ease-out-expo);
+}
+
+.duobar__fill--you {
+  background: linear-gradient(90deg, var(--accent-600), var(--accent-400));
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.duobar__fill--partner {
+  background: linear-gradient(90deg, var(--partner-500), var(--partner-300));
+  box-shadow: 0 0 12px var(--partner-glow);
+}
+
+.duobar__fill.is-complete {
+  animation: duobar-ripple 1.4s var(--ease-out-expo);
+}
+
+.duobar__pct {
+  font-size: var(--text-caption);
+  font-weight: 700;
+  font-family: var(--font-display);
+  text-align: right;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes duobar-ripple {
+  0% {
+    filter: brightness(1);
+  }
+  40% {
+    filter: brightness(1.5);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .duobar__fill.is-complete {
+    animation: none;
+  }
+}

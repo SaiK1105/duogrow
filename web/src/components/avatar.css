@@ -1,0 +1,36 @@
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text-on-accent);
+  flex: none;
+  user-select: none;
+}
+
+.avatar--you {
+  background: linear-gradient(150deg, var(--accent-300), var(--accent-600));
+}
+
+.avatar--partner {
+  background: linear-gradient(150deg, var(--partner-300), var(--partner-500));
+}
+
+.avatar--neutral {
+  background: var(--surface-highlight);
+  color: var(--text-secondary);
+}
+
+.avatar--ring {
+  box-shadow: 0 0 0 2px var(--surface-void), 0 0 0 4px currentColor;
+}
+
+.avatar--you.avatar--ring {
+  box-shadow: 0 0 0 2px var(--surface-void), 0 0 0 4px var(--accent-500), var(--glow-accent-sm);
+}
+
+.avatar--partner.avatar--ring {
+  box-shadow: 0 0 0 2px var(--surface-void), 0 0 0 4px var(--partner-500), var(--glow-partner);
+}
