@@ -3,8 +3,7 @@
 Everything you need to **present DuoGrow at the hackathon** and **keep building
 it**. Written for Sreya. No prior context assumed.
 
-- **Live app:** `https://duogrow.onrender.com` *(confirm the exact URL in the
-  Render dashboard — if the name was taken, Render adds a suffix)*
+- **Live app:** **https://duogrow.onrender.com** (deployed on Render, demo mode)
 - **Repo:** `https://github.com/SaiK1105/duogrow` (private — you're invited)
 - **One-liner:** *An AI Accountability OS for two. You and your partner do real
   things, upload proof, AI verifies it, and your shared streak and growth score

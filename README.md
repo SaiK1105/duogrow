@@ -24,6 +24,8 @@ Data (SQLite + uploads) lives in `~/.duogrow` — deliberately outside OneDrive.
 
 ## Deploy
 
+**Live:** https://duogrow.onrender.com
+
 Deployed on **Render** as a single free web service — one Hono process serves the
 API *and* the built SPA from one origin (no CORS). Config lives in
 [render.yaml](render.yaml); every push to the default branch auto-deploys.
