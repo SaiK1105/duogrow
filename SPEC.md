@@ -92,7 +92,7 @@ Consistency = active-days/7 ・ Score = round(100 · mean of the four)
 - Motion budget (only these): stamp pop, ring fill (stroke-dashoffset), number count-up,
   evidence stagger, cheer toast burst. Compositor-friendly properties only.
 
-## Demo seed (Sreya + Arjun)
+## Demo seed (Sreya + Sai)
 
 7 days of history satisfying the formulas (growth ≈ 88, streak 6, today partially complete),
 ~12-question DSA bank tagged (source “Striver SDE Sheet”), today's POTD = “Two Sum (LeetCode #1)”,
@@ -100,10 +100,10 @@ a few recent proofs. Reset restores this exactly so rehearsal never poisons the 
 
 ## Demo script (2 min, two tabs)
 
-1. Tab A: Sreya creates the duo → invite code. Tab B: Arjun joins → pairing success.
+1. Tab A: Sreya creates the duo → invite code. Tab B: Sai joins → pairing success.
 2. Both see the shared Today dashboard (seeded history alive).
-3. Arjun uploads a workout screenshot → Analyzing… → **Verified ✓ 92%** + evidence + coach line →
+3. Sai uploads a workout screenshot → Analyzing… → **Verified ✓ 92%** + evidence + coach line →
    auto-applied; Tab A updates within 3s; duo streak 6→7.
 4. Sreya opens POTD (“Two Sum”, from Striver Sheet), uploads a solved screenshot → solved.
-5. Sreya hits Cheer → Arjun's tab pops a toast burst.
+5. Sreya hits Cheer → Sai's tab pops a toast burst.
 6. Insights: growth score ring, prediction card (72% risk), weekly report. Close on the tagline.

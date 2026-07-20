@@ -6,6 +6,9 @@ duo streak, and growth score update live for both of you.
 
 *Become better together.*
 
+> **Presenting or continuing this project?** See **[HANDOVER.md](HANDOVER.md)** —
+> pitch script, demo runbook, architecture, ops, backlog, and Codex CLI setup.
+
 ## Run it
 
 ```powershell
@@ -13,11 +16,26 @@ npm install            # root (concurrently)
 cd server; npm install; cd ..
 cd web;    npm install; cd ..
 
-npm run seed           # build demo state (Sreya + Arjun, 7 days of history)
+npm run seed           # build demo state (Sreya + Sai, 7 days of history)
 npm run dev            # web on http://localhost:5173, api on :8787
 ```
 
 Data (SQLite + uploads) lives in `~/.duogrow` — deliberately outside OneDrive.
+
+## Deploy
+
+Deployed on **Render** as a single free web service — one Hono process serves the
+API *and* the built SPA from one origin (no CORS). Config lives in
+[render.yaml](render.yaml); every push to the default branch auto-deploys.
+
+To run that same single-origin production build locally:
+
+```powershell
+npm run build          # build the SPA to web/dist
+npm start              # serves API + SPA on http://localhost:8787
+```
+
+See [HANDOVER.md](HANDOVER.md) for the live URL and the full ops guide.
 
 ## AI modes
 
@@ -31,9 +49,9 @@ Data (SQLite + uploads) lives in `~/.duogrow` — deliberately outside OneDrive.
 
 1. `npm run reset` — restore pristine demo state (safe to re-run between rehearsals).
 2. Open **two tabs** of http://localhost:5173 side by side (sessions are per-tab).
-3. Tab A: continue as **Sreya** · Tab B: continue as **Arjun** (both seeded + already paired) —
+3. Tab A: continue as **Sreya** · Tab B: continue as **Sai** (both seeded + already paired) —
    or register fresh names and pair live with the invite code for the full flow.
-4. Tab B (Arjun): Upload Proof → pick any workout screenshot → *Analyzing…* →
+4. Tab B (Sai): Upload Proof → pick any workout screenshot → *Analyzing…* →
    **Verified ✓** with evidence + coach line → dashboard auto-updates, streak 6 → 7.
    Watch Tab A update within 3 seconds.
 5. Tab A (Sreya): POTD → today's problem (from the seeded question bank) →

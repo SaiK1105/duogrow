@@ -1,0 +1,29 @@
+# Render blueprint — deploys DuoGrow as a single free web service.
+# The Hono server serves both the API and the built React SPA from one origin,
+# so no separate static host and no CORS are needed.
+#
+# One-time setup: render.com -> New -> Blueprint -> connect this repo -> Apply.
+# Every push to the default branch auto-redeploys (and re-seeds the demo).
+services:
+  - type: web
+    name: duogrow
+    runtime: node
+    plan: free
+    # --include=dev is REQUIRED: Render sets NODE_ENV=production, which makes
+    # `npm install` skip devDependencies (vite, typescript, @types). Without it
+    # the web build fails with "vite: command not found".
+    buildCommand: npm install --include=dev && npm --prefix server install --include=dev && npm --prefix web install --include=dev && npm --prefix web run build
+    # Seed runs first (fresh demo data on every boot — ephemeral disk is fine),
+    # then the server starts. Sequential via && so there's no DB write overlap.
+    startCommand: npm --prefix server run seed && npm start
+    healthCheckPath: /api/health
+    envVars:
+      # Pin >=22.9 so Node's --env-file-if-exists flag is recognized.
+      - key: NODE_VERSION
+        value: 22.18.0
+      # Deliberately NOT set here:
+      #   PORT     — Render injects it automatically; the server reads it.
+      #   API_PORT — would override Render's PORT and break the health check.
+      #   DATA_DIR — defaults to ~/.duogrow on the instance (works out of the box).
+      #   ANTHROPIC_API_KEY — leave unset to run the deterministic demo verifier.
+      #                       Add it in the Render dashboard to enable live AI.

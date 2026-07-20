@@ -3,13 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently -k -n web,api -c cyan,green \"npm --prefix web run dev\" \"npm --prefix server run dev\"",
+    "dev": "concurrently -k -n api,web -c green,cyan \"npm --prefix server run dev\" \"npm run dev:web:wait\"",
     "dev:api": "npm --prefix server run dev",
     "dev:web": "npm --prefix web run dev",
+    "dev:web:wait": "node scripts/wait-for-api.mjs && npm --prefix web run dev",
     "seed": "npm --prefix server run seed",
     "reset": "npm --prefix server run seed",
     "build": "npm --prefix web run build",
+    "start": "npm --prefix server run start",
     "typecheck": "npm --prefix server run typecheck && npm --prefix web run typecheck"
+  },
+  "engines": {
+    "node": ">=22.9"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

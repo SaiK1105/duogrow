@@ -1,6 +1,6 @@
 /**
  * Wipes all tables and seeds the exact demo state described in SPEC.md:
- * Sreya + Arjun paired in one duo (invite code GROW42), 7 days of history
+ * Sreya + Sai paired in one duo (invite code GROW42), 7 days of history
  * that lands the growth score in the mid-80s, a 6-day streak, a 12-question
  * POTD bank with 3 already solved, and today partially complete for both.
  *
@@ -20,9 +20,9 @@ import { DEFAULT_USER_CONFIG, type EntryStatus, type ModuleName, type UserRow } 
 const DUO_ID = "duo_demo_grow42";
 const INVITE_CODE = "GROW42";
 const SREYA_ID = "usr_demo_sreya";
-const ARJUN_ID = "usr_demo_arjun";
+const SAI_ID = "usr_demo_sai";
 const SREYA_TOKEN = "demo-sreya";
-const ARJUN_TOKEN = "demo-arjun";
+const SAI_TOKEN = "demo-sai";
 const SOURCE = "Striver SDE Sheet";
 
 const now = new Date().toISOString();
@@ -43,13 +43,13 @@ db.exec(`
 
 db.prepare(
   `INSERT INTO duos (id, name, invite_code, potd_mode, created_by, created_at) VALUES (?, ?, ?, 'same', ?, ?)`,
-).run(DUO_ID, "Sreya & Arjun", INVITE_CODE, SREYA_ID, now);
+).run(DUO_ID, "Sreya & Sai", INVITE_CODE, SREYA_ID, now);
 
 const insertUser = db.prepare(
   `INSERT INTO users (id, name, duo_id, session_token, config_json, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
 );
 insertUser.run(SREYA_ID, "Sreya", DUO_ID, SREYA_TOKEN, JSON.stringify(DEFAULT_USER_CONFIG), now);
-insertUser.run(ARJUN_ID, "Arjun", DUO_ID, ARJUN_TOKEN, JSON.stringify(DEFAULT_USER_CONFIG), now);
+insertUser.run(SAI_ID, "Sai", DUO_ID, SAI_TOKEN, JSON.stringify(DEFAULT_USER_CONFIG), now);
 
 // --- Daily entries: 6 full prior days + today partially complete -----------
 
@@ -82,7 +82,7 @@ const TASKS_TARGET = DEFAULT_USER_CONFIG.tasks.target; // 6
 // 6 near-perfect prior days for both partners. Tasks dip below target on one
 // day each (still counted via the value/target ratio, not just done/pending).
 const sreyaTaskCounts = [6, 6, 5, 6, 6, 6];
-const arjunTaskCounts = [6, 5, 6, 6, 5, 6];
+const saiTaskCounts = [6, 5, 6, 6, 5, 6];
 
 priorDays.forEach((date, i) => {
   seedEntry(SREYA_ID, date, "wake", "done", timeToMinutes("06:15"), WAKE_TARGET, { time: "06:15" });
@@ -91,11 +91,11 @@ priorDays.forEach((date, i) => {
   seedEntry(SREYA_ID, date, "diet", "done", 2000, DIET_TARGET);
   seedEntry(SREYA_ID, date, "tasks", sreyaTaskCounts[i] >= TASKS_TARGET ? "done" : "pending", sreyaTaskCounts[i], TASKS_TARGET);
 
-  seedEntry(ARJUN_ID, date, "wake", "done", timeToMinutes("06:25"), WAKE_TARGET, { time: "06:25" });
-  seedEntry(ARJUN_ID, date, "study", "done", 130, STUDY_TARGET);
-  seedEntry(ARJUN_ID, date, "workout", "done", 1, 1, { name: "Push/Pull/Legs" });
-  seedEntry(ARJUN_ID, date, "diet", "done", 2050, DIET_TARGET);
-  seedEntry(ARJUN_ID, date, "tasks", arjunTaskCounts[i] >= TASKS_TARGET ? "done" : "pending", arjunTaskCounts[i], TASKS_TARGET);
+  seedEntry(SAI_ID, date, "wake", "done", timeToMinutes("06:25"), WAKE_TARGET, { time: "06:25" });
+  seedEntry(SAI_ID, date, "study", "done", 130, STUDY_TARGET);
+  seedEntry(SAI_ID, date, "workout", "done", 1, 1, { name: "Push/Pull/Legs" });
+  seedEntry(SAI_ID, date, "diet", "done", 2050, DIET_TARGET);
+  seedEntry(SAI_ID, date, "tasks", saiTaskCounts[i] >= TASKS_TARGET ? "done" : "pending", saiTaskCounts[i], TASKS_TARGET);
 });
 
 // Today: partially complete, per SPEC.md's demo script.
@@ -104,11 +104,11 @@ seedEntry(SREYA_ID, todayStr, "study", "pending", 90, STUDY_TARGET); // 1.5 / 2h
 seedEntry(SREYA_ID, todayStr, "tasks", "pending", 4, TASKS_TARGET); // 4 / 6
 // Sreya hasn't touched workout/diet yet today — left unset (pending by absence).
 
-seedEntry(ARJUN_ID, todayStr, "wake", "done", timeToMinutes("06:20"), WAKE_TARGET, { time: "06:20" });
-seedEntry(ARJUN_ID, todayStr, "diet", "pending", 1350, DIET_TARGET); // 1350 / 1900 kcal
-seedEntry(ARJUN_ID, todayStr, "workout", "pending", null, 1); // explicitly NOT done
-seedEntry(ARJUN_ID, todayStr, "study", "pending", 30, STUDY_TARGET);
-seedEntry(ARJUN_ID, todayStr, "tasks", "pending", 3, TASKS_TARGET);
+seedEntry(SAI_ID, todayStr, "wake", "done", timeToMinutes("06:20"), WAKE_TARGET, { time: "06:20" });
+seedEntry(SAI_ID, todayStr, "diet", "pending", 1350, DIET_TARGET); // 1350 / 1900 kcal
+seedEntry(SAI_ID, todayStr, "workout", "pending", null, 1); // explicitly NOT done
+seedEntry(SAI_ID, todayStr, "study", "pending", 30, STUDY_TARGET);
+seedEntry(SAI_ID, todayStr, "tasks", "pending", 3, TASKS_TARGET);
 
 // --- Streak: 6, last advanced yesterday -------------------------------------
 
@@ -233,12 +233,12 @@ const fallbackUnsolvedQuestionId = remainingPoolIds[0];
 
 solvedDays.forEach((date, i) => {
   const questionId = solvedSlotIds[i];
-  for (const userId of [SREYA_ID, ARJUN_ID]) {
+  for (const userId of [SREYA_ID, SAI_ID]) {
     insertAssignment.run(newId("potd_a"), DUO_ID, userId, questionId, date, "solved", now);
   }
 });
 unsolvedPastDays.forEach((date) => {
-  for (const userId of [SREYA_ID, ARJUN_ID]) {
+  for (const userId of [SREYA_ID, SAI_ID]) {
     insertAssignment.run(newId("potd_a"), DUO_ID, userId, fallbackUnsolvedQuestionId, date, "assigned", now);
   }
 });
@@ -254,9 +254,9 @@ const { growthScore, subscores } = computeDuoGrowth(DUO_ID, members, 6, days);
 
 console.log("");
 console.log("DuoGrow demo seed complete.");
-console.log(`  Duo: Sreya & Arjun  |  invite code: ${INVITE_CODE}`);
+console.log(`  Duo: Sreya & Sai  |  invite code: ${INVITE_CODE}`);
 console.log(`  Sreya session token: ${SREYA_TOKEN}`);
-console.log(`  Arjun session token: ${ARJUN_TOKEN}`);
+console.log(`  Sai session token: ${SAI_TOKEN}`);
 console.log(`  Streak: 6 (last advanced ${priorDays[priorDays.length - 1]})`);
 console.log(`  Today's POTD pick: "${todaysQuestion?.title ?? "none"}"`);
 console.log(
