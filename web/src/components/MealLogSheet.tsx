@@ -5,6 +5,7 @@ import './meal-log-sheet.css'
 interface MealLogSheetProps {
   isOpen: boolean
   initialCalories: number
+  isSubmitting?: boolean
   onCancel: () => void
   onSubmit: (calories: number) => void
 }
@@ -14,6 +15,7 @@ const QUICK_ADD_CALORIES = [300, 500, 700]
 export function MealLogSheet({
   isOpen,
   initialCalories,
+  isSubmitting = false,
   onCancel,
   onSubmit,
 }: MealLogSheetProps) {
@@ -116,7 +118,7 @@ export function MealLogSheet({
             <button className="btn btn--outline meal-log-sheet__button" type="button" onClick={onCancel}>
               Cancel
             </button>
-            <button className="btn btn--primary meal-log-sheet__button" type="submit">
+            <button className="btn btn--primary meal-log-sheet__button" type="submit" disabled={isSubmitting}>
               Add meal
             </button>
           </div>

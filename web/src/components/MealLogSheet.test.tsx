@@ -73,6 +73,14 @@ describe('MealLogSheet', () => {
     expect(onCancel).toHaveBeenCalledOnce()
   })
 
+  it('disables confirmation while its parent is submitting', () => {
+    render(
+      <MealLogSheet isOpen initialCalories={300} isSubmitting onCancel={vi.fn()} onSubmit={vi.fn()} />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Add meal' })).toBeDisabled()
+  })
+
   it('focuses the Calories input after opening', () => {
     render(
       <MealLogSheet isOpen initialCalories={0} onCancel={vi.fn()} onSubmit={vi.fn()} />,

@@ -4,14 +4,17 @@ import './cheer-button.css'
 interface CheerButtonProps {
   onCheer: () => void | Promise<void>
   label?: string
+  disabled?: boolean
 }
 
 const PARTICLES = Array.from({ length: 10 }, (_, i) => i)
 
-export function CheerButton({ onCheer, label = 'Cheer Partner' }: CheerButtonProps) {
+export function CheerButton({ onCheer, label = 'Cheer Partner', disabled = false }: CheerButtonProps) {
   const [bursts, setBursts] = useState<number[]>([])
 
   const handle = () => {
+    if (disabled) return
+
     const id = Date.now()
     setBursts((prev) => [...prev, id])
     window.setTimeout(() => {
@@ -21,7 +24,7 @@ export function CheerButton({ onCheer, label = 'Cheer Partner' }: CheerButtonPro
   }
 
   return (
-    <button type="button" className="btn btn--ghost cheer-btn" onClick={handle}>
+    <button type="button" className="btn btn--ghost cheer-btn" onClick={handle} disabled={disabled}>
       <span className="cheer-btn__emoji" aria-hidden="true">
         🎉
       </span>

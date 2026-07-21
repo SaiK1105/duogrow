@@ -25,6 +25,7 @@ export function Today() {
   const { data, refetch } = usePolling(api.today, 3000)
   const shownCheers = useRef<Set<string>>(new Set())
   const mealTriggerRef = useRef<HTMLButtonElement>(null)
+  const shouldRestoreMealFocusRef = useRef(false)
   const [isMealSheetOpen, setIsMealSheetOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -38,6 +39,13 @@ export function Today() {
       void api.seenCheer(cheer.id).catch(() => undefined)
     }
   }, [data, showToast])
+
+  useEffect(() => {
+    if (isMealSheetOpen || isSaving || !shouldRestoreMealFocusRef.current) return
+
+    shouldRestoreMealFocusRef.current = false
+    mealTriggerRef.current?.focus()
+  }, [isMealSheetOpen, isSaving])
 
   const mutate = useCallback(
     async (fn: () => Promise<unknown>) => {
@@ -69,8 +77,8 @@ export function Today() {
   }
 
   const closeMealSheet = () => {
+    shouldRestoreMealFocusRef.current = true
     setIsMealSheetOpen(false)
-    mealTriggerRef.current?.focus()
   }
 
   const logMeal = async (calories: number) => {
@@ -235,12 +243,13 @@ export function Today() {
           <UploadIcon size={18} />
           Upload Proof
         </button>
-        <CheerButton onCheer={sendCheer} />
+        <CheerButton onCheer={sendCheer} disabled={isSaving} />
       </div>
 
       <MealLogSheet
         isOpen={isMealSheetOpen}
         initialCalories={500}
+        isSubmitting={isSaving}
         onCancel={closeMealSheet}
         onSubmit={(calories) => void logMeal(calories)}
       />

@@ -101,4 +101,61 @@ describe('Today', () => {
 
     resolveUpdate?.()
   })
+
+  it('disables Add meal while its diet update is unresolved', async () => {
+    const user = userEvent.setup()
+    mockedApi.today.mockResolvedValue(todayResponse)
+    mockedApi.updateModule.mockImplementation(() => new Promise(() => undefined))
+
+    renderToday()
+
+    await user.click(await screen.findByRole('button', { name: '+ Log meal' }))
+    await user.click(screen.getByRole('button', { name: 'Add meal' }))
+
+    expect(screen.getByRole('button', { name: 'Add meal' })).toBeDisabled()
+  })
+
+  it('disables cheering while a Today mutation is unresolved', async () => {
+    const user = userEvent.setup()
+    mockedApi.today.mockResolvedValue(todayResponse)
+    mockedApi.updateModule.mockImplementation(() => new Promise(() => undefined))
+
+    renderToday()
+
+    await user.click(await screen.findByRole('button', { name: '+30m' }))
+
+    expect(screen.getByRole('button', { name: 'Cheer Partner' })).toBeDisabled()
+  })
+
+  it('restores meal trigger focus after a successful save clears', async () => {
+    const user = userEvent.setup()
+    let resolveUpdate: (() => void) | undefined
+    mockedApi.today.mockResolvedValue(todayResponse)
+    mockedApi.updateModule.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveUpdate = () =>
+            resolve({
+              ok: true,
+              entry: { module: 'diet', status: 'pending', value: 700, target: 2000, detail: null },
+            })
+        }),
+    )
+
+    renderToday()
+
+    const mealTrigger = await screen.findByRole('button', { name: '+ Log meal' })
+    await user.click(mealTrigger)
+    await user.click(screen.getByRole('button', { name: 'Add meal' }))
+
+    expect(mealTrigger).toBeDisabled()
+    expect(mealTrigger).not.toHaveFocus()
+
+    resolveUpdate?.()
+
+    await waitFor(() => {
+      expect(mealTrigger).toBeEnabled()
+      expect(mealTrigger).toHaveFocus()
+    })
+  })
 })
