@@ -137,15 +137,7 @@ Expected: FAIL because the screen uses window.prompt and exposes no pending muta
 
 Replace logMeal's prompt with the sheet flow. Add isMealSheetOpen and isSaving state, prevent a mutation when isSaving is true, disable all mutation controls while saving, close the sheet only after a successful update, and clear isSaving in finally. Preserve the entered meal amount on failure and surface the existing error toast. Restore focus to the Diet action when the sheet closes.
 
-- [ ] **Step 4: Add recoverable initial-error state**
-
-After Task 4 creates ScreenState, render it when usePolling returns no data and an error:
-
-    <ScreenState title="Today's check-in is unavailable" onRetry={refetch} />
-
-Keep the existing skeleton for the initial no-data/no-error state.
-
-- [ ] **Step 5: Verify GREEN and commit**
+- [ ] **Step 4: Verify GREEN and commit**
 
 Run: npm --prefix web run test -- src/screens/Today.test.tsx src/components/MealLogSheet.test.tsx
 
@@ -162,6 +154,7 @@ Commit:
 - Create: web/src/components/ScreenState.tsx
 - Create: web/src/components/screen-state.css
 - Create: web/src/components/ScreenState.test.tsx
+- Modify: web/src/screens/Today.tsx
 - Modify: web/src/screens/Potd.tsx
 - Modify: web/src/screens/Insights.tsx
 - Modify: web/src/screens/Profile.tsx
@@ -187,7 +180,7 @@ Render a section with role=alert, a concise helper message, and an existing btn 
 
 - [ ] **Step 4: Replace silent initial-load failures**
 
-For POTD, load potdToday and potdBank from one callback and show ScreenState when no question loaded and loadError is true. For Insights and Profile, show it only when their primary data is absent. For Upload, show it inside Recent proofs if listProofs fails while keeping upload functional.
+For Today, render `<ScreenState title="Today's check-in is unavailable" onRetry={refetch} />` when polling returns no data and an error; retain the skeleton for no-data/no-error. For POTD, load potdToday and potdBank from one callback and show ScreenState when no question loaded and loadError is true. For Insights and Profile, show it only when their primary data is absent. For Upload, show it inside Recent proofs if listProofs fails while keeping upload functional.
 
 - [ ] **Step 5: Verify GREEN and commit**
 
@@ -197,7 +190,7 @@ Expected: PASS.
 
 Commit:
 
-    git add web/src/components/ScreenState.tsx web/src/components/screen-state.css web/src/components/ScreenState.test.tsx web/src/screens/Potd.tsx web/src/screens/Insights.tsx web/src/screens/Profile.tsx web/src/screens/Upload.tsx
+    git add web/src/components/ScreenState.tsx web/src/components/screen-state.css web/src/components/ScreenState.test.tsx web/src/screens/Today.tsx web/src/screens/Potd.tsx web/src/screens/Insights.tsx web/src/screens/Profile.tsx web/src/screens/Upload.tsx
     git commit -m "feat: add retryable screen states"
 
 ### Task 5: Make proof upload single-submit and navigation safe
