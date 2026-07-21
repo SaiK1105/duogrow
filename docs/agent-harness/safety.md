@@ -18,11 +18,14 @@ For smoke commands that may write data, use:
 npm run harness:isolated -- <command>
 ```
 
-It creates an OS-temporary `DATA_DIR`, sets `DEMO_FAKE_AI=1`, and removes every
-casing of `ANTHROPIC_API_KEY` before starting the child process. It preserves
-the child exit code and retains the temporary directory after the command, so
-the verifier can report and inspect it. It never changes the normal data
-directory.
+It gives a cooperating child command an OS-temporary `DATA_DIR`, sets
+`DEMO_FAKE_AI=1`, and removes every casing of `ANTHROPIC_API_KEY` before starting
+the child process. It preserves the child exit code and retains the temporary
+directory after the command, so the verifier can report and inspect it.
+
+This is not a sandbox. It does not remove other secrets, and an arbitrary
+command can ignore `DATA_DIR` or otherwise reach normal or untrusted data.
+Request explicit permission before running a command that could touch that data.
 
 ## Windows batch restriction
 
@@ -33,7 +36,8 @@ instead.
 
 ## Ownership and reporting
 
-One writer owns one file set. `duogrow-scout`, `duogrow-reviewer`, and
-`duogrow-verifier` are read-only roles and do not modify implementation files.
-The final verification report records commands and exit codes, coverage, the
-isolated data path if used, and residual risks.
+One writer owns one file set. `duogrow-scout` and `duogrow-reviewer` have
+sandbox-enforced read-only access. `duogrow-verifier` does not edit files, but
+inherits the caller's permissions to run commands. The final verification report
+records commands and exit codes, coverage, the isolated data path if used, and
+residual risks.

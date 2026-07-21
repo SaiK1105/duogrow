@@ -29,5 +29,6 @@ session headers, proof application, the verifier seam, or schema, write an
 isolated-data smoke plan. Include exact commands, expected result, the temporary
 data path, and the remaining gap in the verifier report.
 
-Use [`npm run harness:isolated -- <command>`](safety.md#isolated-data) when the
-smoke command could initialize or write application data.
+For a cooperating smoke command that accepts `DATA_DIR`, use
+[`npm run harness:isolated -- <command>`](safety.md#isolated-data). It is not a
+sandbox; follow the safety permission boundary for normal or untrusted data.

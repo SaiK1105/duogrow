@@ -1,7 +1,7 @@
 # DuoGrow Codex Agentic Harness
 
-This harness makes nontrivial contributor work traceable without putting demo
-data, secrets, or a live AI key at risk.
+This harness makes nontrivial contributor work traceable. It records ownership,
+validation, data paths, and residual risks; it is not a security sandbox.
 
 ## Required lifecycle
 
@@ -10,10 +10,11 @@ Task brief → scout evidence → plan and file ownership → implementation →
 read-only review → verification → ignored state ledger → user handoff.
 ```
 
-One writer owns one explicitly named file set. The reviewer and verifier are
-read-only: they report findings and command results, never implementation edits.
-The verifier handoff includes every command and exit code, coverage performed,
-the data path used, and residual risks.
+One writer owns one explicitly named file set. The scout and reviewer have
+sandbox-enforced read-only access. The verifier does not edit, but inherits the
+caller's permissions to run commands and report their results. The verifier
+handoff includes every command and exit code, coverage performed, the data path
+used, and residual risks.
 
 ## Start here
 

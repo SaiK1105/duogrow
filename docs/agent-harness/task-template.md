@@ -17,7 +17,7 @@ Copy this template for a nontrivial task before creating its ledger.
 
 ## Scout evidence
 
-- Scout: `duogrow-scout`
+- Scout: `duogrow-scout` (sandbox-enforced read-only)
 - Relevant paths and flow:
 - Risks and open questions:
 
@@ -27,8 +27,8 @@ Copy this template for a nontrivial task before creating its ledger.
 
 ## Required review and verification
 
-- Reviewer: `duogrow-reviewer` (read-only)
-- Verifier: `duogrow-verifier` (read-only)
+- Reviewer: `duogrow-reviewer` (sandbox-enforced read-only)
+- Verifier: `duogrow-verifier` (non-editing; inherits caller permissions)
 - Focused test or smoke plan:
 - Standard gate: `npm run verify`
 - Isolated command, if data can be written:

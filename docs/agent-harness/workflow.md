@@ -16,8 +16,9 @@ will not be overwritten by the run command.
 
 ## 2. Gather evidence and assign ownership
 
-`duogrow-scout` investigates the relevant paths and reports evidence, flow,
-open questions, and risks without editing. Use that evidence to give one
+`duogrow-scout` has sandbox-enforced read-only access and investigates the
+relevant paths, reporting evidence, flow, open questions, and risks. Use that
+evidence to give one
 `duogrow-implementer` a bounded, non-overlapping file set. Do not assign the
 same file to more than one writer.
 
@@ -27,9 +28,10 @@ The implementer changes only the assigned scope and records focused validation.
 `duogrow-reviewer` then performs a read-only review with severity, file/line
 evidence, suggested fixes, and residual risks. Reviewers do not edit.
 
-After findings are resolved, `duogrow-verifier` runs the approved checks without
-editing. The verifier report must list commands, each exit code, coverage
-performed, data path, failures or gaps, and residual risks.
+After findings are resolved, `duogrow-verifier` runs approved checks without
+editing. It inherits the caller's permissions, so its command scope still needs
+the relevant user permission. The verifier report must list commands, each exit
+code, coverage performed, data path, failures or gaps, and residual risks.
 
 ## 4. Handoff
 

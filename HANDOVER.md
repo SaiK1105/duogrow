@@ -197,14 +197,16 @@ choose a new lowercase ID because an existing ledger is never overwritten. The
 standard agent sequence is `duogrow-scout` (read-only evidence),
 `duogrow-implementer` (one owned file set), `duogrow-reviewer` (read-only
 findings), then `duogrow-verifier` (commands, exit codes, coverage, data path,
-and remaining risks). Reviewers and verifiers do not edit.
+and remaining risks). The scout and reviewer are sandbox-enforced read-only.
+The verifier does not edit but inherits the caller's permissions to run its
+commands.
 
 Example assignment: ask `duogrow-scout` to trace the proof-upload flow, give
 `duogrow-implementer` ownership of the named route and its focused tests, ask
 `duogrow-reviewer` to assess the diff, then ask `duogrow-verifier` to run the
 approved checks and record the outcome in the ledger.
 
-For smoke checks that may initialize or write application data, use temporary
+For a cooperating smoke command that accepts `DATA_DIR`, supply fresh temporary
 demo-only data:
 
 ```bash
@@ -215,9 +217,11 @@ npm run verify
 
 `harness:isolated` creates and retains an OS-temp `DATA_DIR`, forces
 `DEMO_FAKE_AI=1`, and removes every casing of `ANTHROPIC_API_KEY` from the child
-environment. On Windows, `.cmd` and `.bat` inputs containing whitespace,
-quotes, or command-shell metacharacters are rejected. Never treat it as
-permission to reset normal user data. `npm run verify` / `npm run verify:ci`
+environment. It is not a sandbox, does not scrub other secrets, and an arbitrary
+command can ignore `DATA_DIR`; request explicit permission before commands that
+could touch normal or untrusted data. On Windows, `.cmd` and `.bat` inputs
+containing whitespace, quotes, or command-shell metacharacters are rejected.
+`npm run verify` / `npm run verify:ci`
 runs web tests, typecheck, web lint, a production build, and whitespace-diff
 checks only; server integration and a tracked two-browser E2E suite are planned
 coverage, not passing tests.

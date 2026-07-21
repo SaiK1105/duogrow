@@ -60,15 +60,20 @@ Start a new run with `npm run harness:run -- --id <lowercase-id>`. It creates an
 ignored ledger at `.agent-state/<id>/status.md` and refuses to overwrite an
 existing ID. Record scope, owned files, commands and exit codes, isolated data
 path, findings, commits, and residual risks there. Assign exactly one writer to
-each file set; `duogrow-reviewer` and `duogrow-verifier` are read-only and must
-not edit the implementation.
+each file set. `duogrow-scout` and `duogrow-reviewer` are sandbox-enforced
+read-only;
+`duogrow-verifier` runs commands without editing but inherits the caller's
+permissions.
 
 Use `duogrow-scout` to collect read-only code evidence, `duogrow-implementer`
 for the owned change, `duogrow-reviewer` for findings, and `duogrow-verifier`
 for command results. Run `npm run harness:doctor` before relying on the harness.
-Use `npm run harness:isolated -- <command>` for data-affecting smoke checks: it
-uses temporary demo-only data and retains the directory for inspection. The
-batch-command input restriction described in
+Use `npm run harness:isolated -- <command>` for cooperating data-affecting smoke
+commands: it supplies a fresh temporary `DATA_DIR`, forces demo AI, removes all
+`ANTHROPIC_API_KEY` casing, and retains the directory for inspection. It is not
+a sandbox, does not remove other secrets, and a command can ignore `DATA_DIR`.
+Get explicit permission before any command that may touch normal or untrusted
+data. The batch-command input restriction described in
 [`docs/agent-harness/safety.md`](docs/agent-harness/safety.md) applies.
 
 Use `npm run verify` (or `npm run verify:ci`) for the standard web-focused gate.
