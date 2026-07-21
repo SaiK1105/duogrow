@@ -33,7 +33,7 @@
 
 Add the script and packages, then run npm --prefix web install:
 
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
     "@testing-library/jest-dom": "^6.9.1"
     "@testing-library/react": "^16.3.2"
     "@testing-library/user-event": "^14.6.1"
