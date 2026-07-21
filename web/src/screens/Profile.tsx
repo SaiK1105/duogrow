@@ -4,7 +4,7 @@ import { api, clearToken } from '../api/client'
 import type { HealthResponse, MeResponse } from '../api/types'
 import { Avatar } from '../components/Avatar'
 import { ScreenState } from '../components/ScreenState'
-import { useToast } from '../components/Toast'
+import { useToast } from '../components/toast-context'
 import './profile.css'
 
 function aiLabel(h: HealthResponse | null): { text: string; live: boolean } {

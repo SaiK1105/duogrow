@@ -7,7 +7,7 @@ import { ConfidenceBadge } from '../components/ConfidenceBadge'
 import { EvidenceChecklist } from '../components/EvidenceChecklist'
 import { BackIcon } from '../components/icons'
 import { VerifiedStamp } from '../components/VerifiedStamp'
-import { useToast } from '../components/Toast'
+import { useToast } from '../components/toast-context'
 import './verify-result.css'
 
 const HEADLINE: Record<Band, string> = {

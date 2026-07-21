@@ -4,7 +4,7 @@ import { api, ApiError, getToken, setToken } from '../api/client'
 import type { Duo } from '../api/types'
 import { Avatar } from '../components/Avatar'
 import { CopyIcon } from '../components/icons'
-import { useToast } from '../components/Toast'
+import { useToast } from '../components/toast-context'
 import './onboarding.css'
 
 type Step = 'loading' | 'name' | 'choice' | 'waiting' | 'join' | 'success'

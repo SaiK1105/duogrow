@@ -1,19 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { ToastContext, type ToastContextValue, type ToastTone } from './toast-context'
 import './toast.css'
-
-export type ToastTone = 'success' | 'warn' | 'danger' | 'info'
 
 interface ToastItem {
   id: number
   message: string
   tone: ToastTone
 }
-
-interface ToastContextValue {
-  showToast: (message: string, tone?: ToastTone, durationMs?: number) => void
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null)
 
 const DEFAULT_DURATION = 3200
 
@@ -53,10 +46,4 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       </div>
     </ToastContext.Provider>
   )
-}
-
-export function useToast(): ToastContextValue {
-  const ctx = useContext(ToastContext)
-  if (!ctx) throw new Error('useToast must be used within a ToastProvider')
-  return ctx
 }

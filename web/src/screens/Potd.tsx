@@ -5,7 +5,7 @@ import type { PotdBankItem, PotdTodayResponse } from '../api/types'
 import { DifficultyPill } from '../components/DifficultyPill'
 import { CheckIcon } from '../components/icons'
 import { ScreenState } from '../components/ScreenState'
-import { useToast } from '../components/Toast'
+import { useToast } from '../components/toast-context'
 import './potd.css'
 
 const LONG_BODY = 200
