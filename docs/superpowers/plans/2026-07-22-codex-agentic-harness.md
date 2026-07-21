@@ -37,7 +37,7 @@
 
 **Produces:** Four selectable roles plus shallow, predictable agent fan-out.
 
-- [ ] **Step 1: Write role files with stable metadata and clear authority**
+- [x] **Step 1: Write role files with stable metadata and clear authority**
 
 ```toml
 name = "duogrow-reviewer"
@@ -52,7 +52,7 @@ a suggested fix, exact checks examined, and residual risk.
 
 Use equivalent explicit contracts for a read-only scout, a bounded implementer, and a verifier that runs commands but does not edit.
 
-- [ ] **Step 2: Add only safe project defaults**
+- [x] **Step 2: Add only safe project defaults**
 
 ```toml
 [agents]
@@ -61,7 +61,7 @@ max_depth = 1
 interrupt_message = true
 ```
 
-- [ ] **Step 3: Validate the contracts and commit**
+- [x] **Step 3: Validate the contracts and commit**
 
 Run: `Get-ChildItem .codex/agents -Filter '*.toml' | Measure-Object`
 
@@ -85,7 +85,7 @@ git commit -m "feat: add Codex project agents"
 
 **Produces:** `npm run verify`, `npm run harness:doctor`, `npm run harness:isolated -- <command>`, and `npm run harness:run -- --id <id>`.
 
-- [ ] **Step 1: Establish the expected failure before implementation**
+- [x] **Step 1: Establish the expected failure before implementation**
 
 Run:
 
@@ -97,7 +97,7 @@ npm run harness:isolated -- node -e "console.log(process.env.DEMO_FAKE_AI)"
 
 Expected: all three fail because the commands do not exist.
 
-- [ ] **Step 2: Add the package scripts**
+- [x] **Step 2: Add the package scripts**
 
 ```json
 {
@@ -113,7 +113,7 @@ Expected: all three fail because the commands do not exist.
 }
 ```
 
-- [ ] **Step 3: Implement a sequential verification runner**
+- [x] **Step 3: Implement a sequential verification runner**
 
 ```js
 const checks = [
@@ -130,7 +130,7 @@ Use `spawn` with inherited stdio, use Node's npm CLI entry point for a plain
 generic `.cmd`/`.bat` launchers: reject them and command interpreters before
 creating isolated data, as the security-driven deviation above requires.
 
-- [ ] **Step 4: Implement isolated-child and ledger semantics**
+- [x] **Step 4: Implement isolated-child and ledger semantics**
 
 ```js
 const dataDir = await mkdtemp(join(tmpdir(), "duogrow-harness-"));
@@ -140,7 +140,7 @@ delete env.ANTHROPIC_API_KEY;
 
 Reject a missing command after `--`. Accept only ledger IDs matching `^[a-z0-9][a-z0-9-]{2,63}$`, refuse overwrites, and write scope, ownership, acceptance criteria, commands, data, findings, commits, and handoff fields. Ignore run directories but track the state README and `.gitignore`.
 
-- [ ] **Step 5: Validate the safe surface and commit**
+- [x] **Step 5: Validate the safe surface and commit**
 
 Run:
 
@@ -173,7 +173,7 @@ git commit -m "feat: add safe Codex harness commands"
 
 **Produces:** a self-contained contributor path from task intake through verified handoff.
 
-- [ ] **Step 1: Document one mandatory lifecycle**
+- [x] **Step 1: Document one mandatory lifecycle**
 
 ```text
 Task brief → scout evidence → plan and file ownership → implementation →
@@ -182,7 +182,7 @@ read-only review → verification → ignored state ledger → user handoff.
 
 State that reviewers do not edit, one writer owns one file set, and verifier output includes commands, exit codes, coverage, data path, and residual risks.
 
-- [ ] **Step 2: Document gates with honest coverage**
+- [x] **Step 2: Document gates with honest coverage**
 
 ```text
 UI-only: focused test + npm run verify
@@ -192,11 +192,11 @@ Deployment, secrets, public API, data reset: stop and request fresh permission
 
 Explicitly name server integration tests and two-browser E2E as planned coverage, not passing tests.
 
-- [ ] **Step 3: Link the harness from `AGENTS.md` and `HANDOVER.md`**
+- [x] **Step 3: Link the harness from `AGENTS.md` and `HANDOVER.md`**
 
 Add a concise `AGENTS.md` section that routes nontrivial work through the state ledger and preserves current API-port/static-server gotchas. Update the human handover with exact harness commands and named-agent examples.
 
-- [ ] **Step 4: Validate references and commit**
+- [x] **Step 4: Validate references and commit**
 
 Run:
 
@@ -219,7 +219,7 @@ git commit -m "docs: add Codex harness workflow"
 
 **Produces:** a Node 22 workflow that installs all three locked dependency graphs and runs `npm run verify:ci` for push and pull-request events.
 
-- [ ] **Step 1: Add the workflow**
+- [x] **Step 1: Add the workflow**
 
 ```yaml
 name: Quality
@@ -241,7 +241,7 @@ jobs:
       - run: npm run verify:ci
 ```
 
-- [ ] **Step 2: Run the same gate locally and commit**
+- [x] **Step 2: Run the same gate locally and commit**
 
 Run: `npm run verify:ci`
 
@@ -257,11 +257,11 @@ git commit -m "ci: verify Codex quality gate"
 **Files:**
 - Modify: `docs/superpowers/plans/2026-07-22-codex-agentic-harness.md`
 
-- [ ] **Step 1: Request independent read-only review**
+- [x] **Step 1: Request independent read-only review**
 
 Ask a reviewer to examine `.codex`, Node scripts, agent state policy, safety docs, and CI. Fix every Critical or Important finding before proceeding.
 
-- [ ] **Step 2: Run final harness and quality gates**
+- [x] **Step 2: Run final harness and quality gates**
 
 ```powershell
 npm run harness:doctor
@@ -274,7 +274,7 @@ git ls-files .agent-state
 
 Expected: every command exits zero, the worktree is clean, and only `.agent-state/README.md` plus `.agent-state/.gitignore` are tracked under the state directory.
 
-- [ ] **Step 3: Mark completed tasks and commit the final ledger**
+- [x] **Step 3: Mark completed tasks and commit the final ledger**
 
 ```powershell
 git add docs/superpowers/plans/2026-07-22-codex-agentic-harness.md
