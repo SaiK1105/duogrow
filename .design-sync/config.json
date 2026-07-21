@@ -1,5 +1,6 @@
 {
   "shape": "package",
+  "projectId": "b4e036fe-6179-4878-bb13-ae670a0458b2",
   "pkg": "web",
   "globalName": "DuoGrow",
   "srcDir": "src/components",
