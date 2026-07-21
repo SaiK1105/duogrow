@@ -11,7 +11,14 @@
     "reset": "npm --prefix server run seed",
     "build": "npm --prefix web run build",
     "start": "npm --prefix server run start",
-    "typecheck": "npm --prefix server run typecheck && npm --prefix web run typecheck"
+    "typecheck": "npm --prefix server run typecheck && npm --prefix web run typecheck",
+    "test": "npm --prefix web run test",
+    "lint": "npm --prefix web run lint",
+    "verify": "node scripts/harness/verify.mjs",
+    "verify:ci": "npm run verify",
+    "harness:doctor": "node scripts/harness/doctor.mjs",
+    "harness:isolated": "node scripts/harness/isolated-run.mjs",
+    "harness:run": "node scripts/harness/create-run.mjs"
   },
   "engines": {
     "node": ">=22.9"
