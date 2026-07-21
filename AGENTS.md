@@ -47,6 +47,35 @@ two-tab smoke test or `npm run build && npm start` and open http://localhost:878
 - SQL is parameterized (`db.prepare(...).run(...)`), never string-concatenated.
 - Conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`).
 
+## Codex agentic harness
+
+For any nontrivial Codex task, use the mandatory harness lifecycle:
+
+```text
+Task brief → scout evidence → plan and file ownership → implementation →
+read-only review → verification → ignored state ledger → user handoff.
+```
+
+Start a new run with `npm run harness:run -- --id <lowercase-id>`. It creates an
+ignored ledger at `.agent-state/<id>/status.md` and refuses to overwrite an
+existing ID. Record scope, owned files, commands and exit codes, isolated data
+path, findings, commits, and residual risks there. Assign exactly one writer to
+each file set; `duogrow-reviewer` and `duogrow-verifier` are read-only and must
+not edit the implementation.
+
+Use `duogrow-scout` to collect read-only code evidence, `duogrow-implementer`
+for the owned change, `duogrow-reviewer` for findings, and `duogrow-verifier`
+for command results. Run `npm run harness:doctor` before relying on the harness.
+Use `npm run harness:isolated -- <command>` for data-affecting smoke checks: it
+uses temporary demo-only data and retains the directory for inspection. The
+batch-command input restriction described in
+[`docs/agent-harness/safety.md`](docs/agent-harness/safety.md) applies.
+
+Use `npm run verify` (or `npm run verify:ci`) for the standard web-focused gate.
+It does not cover server integration or tracked two-browser E2E flows; plan
+those checks explicitly when the change touches routes, SQLite, sessions,
+proofs, verifier behavior, or schema.
+
 ## Gotchas (these have bitten before — don't rediscover them)
 
 - **Port env var is `API_PORT`, not `PORT`.** The server reads
