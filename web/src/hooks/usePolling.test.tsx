@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { usePolling } from './usePolling'
 
@@ -25,58 +25,59 @@ function deferred<T>(): Deferred<T> {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 describe('usePolling', () => {
-  it('retains the newest response when an older request settles last', async () => {
+  it('does not overlap pending polling requests', async () => {
+    vi.useFakeTimers()
     const first = deferred<string>()
-    const second = deferred<string>()
-    const fetcher = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
-    const { result } = renderHook(() => usePolling(fetcher, 60_000))
+    const fetcher = vi.fn().mockReturnValue(first.promise)
+    renderHook(() => usePolling(fetcher, 3_000))
 
-    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1))
+    expect(fetcher).toHaveBeenCalledTimes(1)
 
     act(() => {
-      void result.current.refetch()
+      vi.advanceTimersByTime(9_000)
     })
-    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
 
-    await act(async () => {
-      second.resolve('new response')
-      await second.promise
-    })
-    expect(result.current.data).toBe('new response')
-
-    await act(async () => {
-      first.resolve('stale response')
-      await first.promise
-    })
-    expect(result.current.data).toBe('new response')
+    expect(fetcher).toHaveBeenCalledTimes(1)
   })
 
-  it('ignores an older rejection after a newer request succeeds', async () => {
+  it('queues a manual refetch after a pending poll and resolves with a fresh response', async () => {
     const first = deferred<string>()
     const second = deferred<string>()
     const fetcher = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
     const { result } = renderHook(() => usePolling(fetcher, 60_000))
 
-    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1))
+    expect(fetcher).toHaveBeenCalledTimes(1)
+
+    let refreshComplete = false
+    let refresh: Promise<void> | undefined
 
     act(() => {
-      void result.current.refetch()
+      refresh = result.current.refetch().then(() => {
+        refreshComplete = true
+      })
     })
-    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
+
+    expect(fetcher).toHaveBeenCalledTimes(1)
 
     await act(async () => {
-      second.resolve('new response')
-      await second.promise
+      first.resolve('poll response')
+      await first.promise
+      await Promise.resolve()
     })
-    expect(result.current).toMatchObject({ data: 'new response', error: null, isLoading: false })
+
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(refreshComplete).toBe(false)
 
     await act(async () => {
-      first.reject(new Error('stale failure'))
-      await first.promise.catch(() => undefined)
+      second.resolve('fresh response')
+      await refresh
     })
-    expect(result.current).toMatchObject({ data: 'new response', error: null, isLoading: false })
+
+    expect(refreshComplete).toBe(true)
+    expect(result.current).toMatchObject({ data: 'fresh response', error: null, isLoading: false })
   })
 })
