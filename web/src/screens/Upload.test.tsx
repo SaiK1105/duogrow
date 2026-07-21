@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
-import type { ProofResponse } from '../api/types'
+import type { Proof, ProofResponse } from '../api/types'
 import { ToastProvider } from '../components/Toast'
 import { Upload } from './Upload'
 
@@ -112,5 +112,43 @@ describe('Upload', () => {
     await vi.advanceTimersByTimeAsync(1800)
 
     expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  it('exposes the selected proof category with aria-pressed', async () => {
+    const user = userEvent.setup()
+    renderUpload()
+
+    const autoDetect = screen.getByRole('button', { name: 'Auto-detect' })
+    const study = screen.getByRole('button', { name: 'Study' })
+
+    expect(autoDetect).toHaveAttribute('aria-pressed', 'true')
+    expect(study).toHaveAttribute('aria-pressed', 'false')
+
+    await user.click(study)
+
+    expect(autoDetect).toHaveAttribute('aria-pressed', 'false')
+    expect(study).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('includes the confidence band in each recent-proof button name', async () => {
+    const proof: Proof = {
+      id: 'proof-1',
+      url: '/proof.jpg',
+      module: 'workout',
+      aiStatus: 'verified',
+      aiConfidence: 0.96,
+      band: 'high',
+      evidence: [],
+      metrics: {},
+      coachMessage: '',
+      summary: 'Morning run',
+      appliedUpdate: null,
+      createdAt: '2026-07-22T00:00:00.000Z',
+    }
+    mockedApi.listProofs.mockResolvedValueOnce({ proofs: [proof] })
+
+    renderUpload()
+
+    expect(await screen.findByRole('button', { name: 'Morning run — high confidence' })).toBeVisible()
   })
 })

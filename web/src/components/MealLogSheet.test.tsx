@@ -41,6 +41,7 @@ describe('MealLogSheet', () => {
     await user.click(screen.getByRole('button', { name: 'Add meal' }))
 
     expect(screen.getByRole('alert')).toHaveTextContent('Enter a positive number of calories.')
+    expect(calories).toHaveAttribute('aria-invalid', 'true')
   })
 
   it('rejects a fractional calorie value without submitting it', async () => {
@@ -87,5 +88,49 @@ describe('MealLogSheet', () => {
     )
 
     expect(screen.getByLabelText('Calories')).toHaveFocus()
+  })
+
+  it('cycles Tab and Shift+Tab through its enabled controls', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MealLogSheet isOpen initialCalories={0} onCancel={vi.fn()} onSubmit={vi.fn()} />,
+    )
+
+    const calories = screen.getByLabelText('Calories')
+    const quickAdd300 = screen.getByRole('button', { name: '300 calories' })
+    const quickAdd500 = screen.getByRole('button', { name: '500 calories' })
+    const quickAdd700 = screen.getByRole('button', { name: '700 calories' })
+    const cancel = screen.getByRole('button', { name: 'Cancel' })
+    const addMeal = screen.getByRole('button', { name: 'Add meal' })
+
+    expect(calories).toHaveFocus()
+    await user.tab()
+    expect(quickAdd300).toHaveFocus()
+    await user.tab()
+    expect(quickAdd500).toHaveFocus()
+    await user.tab()
+    expect(quickAdd700).toHaveFocus()
+    await user.tab()
+    expect(cancel).toHaveFocus()
+    await user.tab()
+    expect(addMeal).toHaveFocus()
+    await user.tab()
+    expect(calories).toHaveFocus()
+    await user.tab({ shift: true })
+    expect(addMeal).toHaveFocus()
+  })
+
+  it('calls onCancel when Escape is pressed', async () => {
+    const user = userEvent.setup()
+    const onCancel = vi.fn()
+
+    render(
+      <MealLogSheet isOpen initialCalories={0} onCancel={onCancel} onSubmit={vi.fn()} />,
+    )
+
+    await user.keyboard('{Escape}')
+
+    expect(onCancel).toHaveBeenCalledOnce()
   })
 })

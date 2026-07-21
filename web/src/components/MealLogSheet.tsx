@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { createPortal } from 'react-dom'
 import './meal-log-sheet.css'
 
 interface MealLogSheetProps {
@@ -11,6 +12,7 @@ interface MealLogSheetProps {
 }
 
 const QUICK_ADD_CALORIES = [300, 500, 700]
+const FOCUSABLE_SELECTOR = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
 
 export function MealLogSheet({
   isOpen,
@@ -20,6 +22,7 @@ export function MealLogSheet({
   onSubmit,
 }: MealLogSheetProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLElement>(null)
   const [calories, setCalories] = useState(String(initialCalories || ''))
   const [error, setError] = useState('')
 
@@ -30,6 +33,20 @@ export function MealLogSheet({
     setError('')
     inputRef.current?.focus()
   }, [initialCalories, isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const appRoot = document.getElementById('root')
+    if (!appRoot) return
+
+    const wasInert = appRoot.inert
+    appRoot.inert = true
+
+    return () => {
+      appRoot.inert = wasInert
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -52,17 +69,39 @@ export function MealLogSheet({
     onSubmit(parsedCalories)
   }
 
-  return (
+  const trapFocus = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onCancel()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])
+    if (focusable.length === 0) return
+
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
+  return createPortal(
     <div
       className="meal-log-sheet__backdrop"
       onClick={(event) => {
         if (event.target === event.currentTarget) onCancel()
       }}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') onCancel()
-      }}
+      onKeyDown={trapFocus}
     >
       <section
+        ref={dialogRef}
         className="meal-log-sheet"
         role="dialog"
         aria-modal="true"
@@ -91,6 +130,7 @@ export function MealLogSheet({
             value={calories}
             onChange={(event) => setCalories(event.target.value)}
             aria-describedby={error ? 'meal-calories-error' : undefined}
+            aria-invalid={error ? true : undefined}
           />
           {error && (
             <p id="meal-calories-error" className="meal-log-sheet__error" role="alert">
@@ -124,6 +164,7 @@ export function MealLogSheet({
           </div>
         </form>
       </section>
-    </div>
+    </div>,
+    document.body,
   )
 }

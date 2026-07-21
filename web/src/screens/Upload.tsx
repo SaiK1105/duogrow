@@ -125,6 +125,7 @@ export function Upload() {
             className={`chip ${choice === c.value ? 'chip--active' : ''}`}
             onClick={() => setChoice(c.value)}
             disabled={analyzing}
+            aria-pressed={choice === c.value}
           >
             {c.label}
           </button>
@@ -171,6 +172,7 @@ export function Upload() {
                   className={`upload__thumb upload__thumb--${p.band}`}
                   onClick={() => navigate(`/verify/${p.id}`)}
                   disabled={analyzing}
+                  aria-label={`${p.summary || 'Proof'} — ${p.band} confidence`}
                 >
                   <img src={p.url} alt={p.summary || 'Proof'} loading="lazy" />
                   <span className="upload__thumb-band" />

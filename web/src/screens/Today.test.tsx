@@ -158,4 +158,17 @@ describe('Today', () => {
       expect(mealTrigger).toHaveFocus()
     })
   })
+
+  it('restores meal trigger focus after cancelling the meal sheet', async () => {
+    const user = userEvent.setup()
+    mockedApi.today.mockResolvedValue(todayResponse)
+
+    renderToday()
+
+    const mealTrigger = await screen.findByRole('button', { name: '+ Log meal' })
+    await user.click(mealTrigger)
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() => expect(mealTrigger).toHaveFocus())
+  })
 })
