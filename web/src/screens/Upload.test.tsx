@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
+import type { ProofResponse } from '../api/types'
 import { ToastProvider } from '../components/Toast'
 import { Upload } from './Upload'
 
@@ -27,9 +28,14 @@ function renderUpload() {
 
 afterEach(() => {
   vi.clearAllMocks()
+  vi.useRealTimers()
 })
 
 describe('Upload', () => {
+  beforeEach(() => {
+    mockedApi.listProofs.mockResolvedValue({ proofs: [] })
+  })
+
   it('keeps the recent-proofs recovery visible while a retry is pending', async () => {
     const user = userEvent.setup()
     let resolveRetry: ((value: { proofs: [] }) => void) | undefined
@@ -49,5 +55,49 @@ describe('Upload', () => {
     expect(screen.getByRole('button', { name: 'Trying again…' })).toBeDisabled()
 
     resolveRetry?.({ proofs: [] })
+  })
+
+  it('submits a selected proof only once while AI analysis is pending', async () => {
+    const user = userEvent.setup()
+    let resolveUpload: ((value: ProofResponse) => void) | undefined
+    const pendingUpload = new Promise<ProofResponse>((resolve) => {
+      resolveUpload = resolve
+    })
+    mockedApi.uploadProof.mockReturnValueOnce(pendingUpload)
+
+    const { container } = renderUpload()
+    const file = new File(['proof'], 'proof.png', { type: 'image/png' })
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]')
+    expect(input).not.toBeNull()
+    fireEvent.change(input!, { target: { files: [file] } })
+
+    const verify = screen.getByRole('button', { name: 'Verify with AI' })
+    await user.click(verify)
+    await user.click(verify)
+
+    expect(verify).toBeDisabled()
+    expect(mockedApi.uploadProof).toHaveBeenCalledTimes(1)
+
+    expect(resolveUpload).toBeDefined()
+  })
+
+  it('clears a pending result navigation timer when unmounted', async () => {
+    vi.useFakeTimers()
+    mockedApi.uploadProof.mockResolvedValue({ proof: { id: 'proof-1' } } as ProofResponse)
+    const clearTimeout = vi.spyOn(window, 'clearTimeout')
+
+    const { container, unmount } = renderUpload()
+    const file = new File(['proof'], 'proof.png', { type: 'image/png' })
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]')
+    expect(input).not.toBeNull()
+    fireEvent.change(input!, { target: { files: [file] } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Verify with AI' }))
+    await act(async () => {
+      await Promise.resolve()
+    })
+    unmount()
+
+    expect(clearTimeout).toHaveBeenCalled()
   })
 })

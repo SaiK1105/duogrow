@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Proof } from '../api/types'
@@ -38,6 +38,7 @@ export function Upload() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [statusIndex, setStatusIndex] = useState(0)
+  const resultTimerRef = useRef<number | null>(null)
   const [recent, setRecent] = useState<Proof[]>([])
   const [loadError, setLoadError] = useState(false)
   const [isRecentLoading, setIsRecentLoading] = useState(true)
@@ -72,6 +73,14 @@ export function Upload() {
     return () => window.clearInterval(id)
   }, [analyzing])
 
+  useEffect(() => {
+    return () => {
+      if (resultTimerRef.current !== null) {
+        window.clearTimeout(resultTimerRef.current)
+      }
+    }
+  }, [])
+
   const onFile = (picked: File) => {
     setFile(picked)
     setPreviewUrl((prev) => {
@@ -81,7 +90,7 @@ export function Upload() {
   }
 
   const verify = async () => {
-    if (!file) return
+    if (!file || analyzing) return
     setAnalyzing(true)
     setStatusIndex(0)
     const started = performance.now()
@@ -89,7 +98,7 @@ export function Upload() {
       const res = await api.uploadProof(file, choice === 'auto' ? undefined : choice)
       const elapsed = performance.now() - started
       const wait = Math.max(0, MIN_ANALYZE_MS - elapsed)
-      window.setTimeout(() => navigate(`/verify/${res.proof.id}`), wait)
+      resultTimerRef.current = window.setTimeout(() => navigate(`/verify/${res.proof.id}`), wait)
     } catch {
       setAnalyzing(false)
       showToast('Upload failed — try again', 'danger')
@@ -110,6 +119,7 @@ export function Upload() {
             type="button"
             className={`chip ${choice === c.value ? 'chip--active' : ''}`}
             onClick={() => setChoice(c.value)}
+            disabled={analyzing}
           >
             {c.label}
           </button>
@@ -122,6 +132,7 @@ export function Upload() {
           <button
             type="button"
             className="upload__change"
+            disabled={analyzing}
             onClick={() => {
               setFile(null)
               setPreviewUrl((prev) => {
@@ -137,7 +148,7 @@ export function Upload() {
         <UploadDropzone onFile={onFile} />
       )}
 
-      <button type="button" className="btn btn--primary btn--block" onClick={verify} disabled={!file}>
+      <button type="button" className="btn btn--primary btn--block" onClick={verify} disabled={!file || analyzing}>
         Verify with AI
       </button>
 
@@ -154,6 +165,7 @@ export function Upload() {
                   type="button"
                   className={`upload__thumb upload__thumb--${p.band}`}
                   onClick={() => navigate(`/verify/${p.id}`)}
+                  disabled={analyzing}
                 >
                   <img src={p.url} alt={p.summary || 'Proof'} loading="lazy" />
                   <span className="upload__thumb-band" />
