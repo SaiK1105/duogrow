@@ -58,6 +58,8 @@ try {
     'name.toUpperCase() !== "ANTHROPIC_API_KEY"',
     "env.DATA_DIR = dataDir",
     'env.DEMO_FAKE_AI = "1"',
+    "shell: isWindowsBatchCommand",
+    "unsafeBatchCharacter.test(argument)",
   ];
   if (requiredContract.every((fragment) => isolatedRun.includes(fragment))) {
     console.log("ok isolated-run safety contract");

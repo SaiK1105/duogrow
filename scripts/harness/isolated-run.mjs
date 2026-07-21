@@ -10,6 +10,13 @@ if (command.length === 0 || command[0] === "--") {
   process.exit(1);
 }
 
+const isWindowsBatchCommand = process.platform === "win32" && /\.(?:cmd|bat)$/i.test(command[0]);
+const unsafeBatchCharacter = /[&|<>()^%!`"\r\n]/;
+if (isWindowsBatchCommand && command.some((argument) => unsafeBatchCharacter.test(argument))) {
+  console.error("Windows batch commands cannot contain command-shell metacharacters.");
+  process.exit(1);
+}
+
 const dataDir = await mkdtemp(join(tmpdir(), "duogrow-harness-"));
 const env = Object.fromEntries(
   Object.entries(process.env).filter(([name]) => name.toUpperCase() !== "ANTHROPIC_API_KEY"),
@@ -25,7 +32,11 @@ const npmExecPath = Object.entries(process.env).find(
 )?.[1];
 const child = process.platform === "win32" && (commandName === "npm" || commandName === "npm.cmd") && npmExecPath
   ? spawn(process.execPath, [npmExecPath, ...command.slice(1)], { env, stdio: "inherit" })
-  : spawn(command[0], command.slice(1), { env, stdio: "inherit" });
+  : spawn(command[0], command.slice(1), {
+    env,
+    shell: isWindowsBatchCommand,
+    stdio: "inherit",
+  });
 child.once("error", (error) => {
   console.error(`Could not run ${command[0]}: ${error.message}`);
   process.exitCode = 1;
