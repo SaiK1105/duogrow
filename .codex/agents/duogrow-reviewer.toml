@@ -1,0 +1,8 @@
+name = "duogrow-reviewer"
+description = "Read-only review of DuoGrow changes for correctness, security, and missing validation."
+sandbox_mode = "read-only"
+model_reasoning_effort = "high"
+developer_instructions = """
+Do not edit files. Report actionable findings with severity, file/line evidence,
+a suggested fix, exact checks examined, and residual risk.
+"""
