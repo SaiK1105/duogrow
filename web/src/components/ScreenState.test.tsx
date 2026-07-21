@@ -16,4 +16,11 @@ describe('ScreenState', () => {
 
     expect(onRetry).toHaveBeenCalledTimes(1)
   })
+
+  it('announces a retry in progress and disables its action', () => {
+    render(<ScreenState title="Insights are unavailable" onRetry={vi.fn()} retrying />)
+
+    expect(screen.getByRole('alert')).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByRole('button', { name: 'Trying again…' })).toBeDisabled()
+  })
 })

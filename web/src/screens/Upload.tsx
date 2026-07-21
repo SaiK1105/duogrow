@@ -40,14 +40,18 @@ export function Upload() {
   const [statusIndex, setStatusIndex] = useState(0)
   const [recent, setRecent] = useState<Proof[]>([])
   const [loadError, setLoadError] = useState(false)
+  const [isRecentLoading, setIsRecentLoading] = useState(true)
 
   const loadRecent = useCallback(async () => {
-    setLoadError(false)
+    setIsRecentLoading(true)
     try {
       const res = await api.listProofs()
       setRecent(res.proofs.slice(0, 6))
+      setLoadError(false)
     } catch {
       setLoadError(true)
+    } finally {
+      setIsRecentLoading(false)
     }
   }, [])
 
@@ -141,7 +145,7 @@ export function Upload() {
         <section className="upload__recent">
           <h2 className="section-title">Recent proofs</h2>
           {loadError ? (
-            <ScreenState title="Recent proofs are unavailable" onRetry={loadRecent} />
+            <ScreenState title="Recent proofs are unavailable" onRetry={loadRecent} retrying={isRecentLoading} />
           ) : (
             <div className="upload__grid">
               {recent.map((p) => (
