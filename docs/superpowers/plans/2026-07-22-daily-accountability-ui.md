@@ -154,6 +154,8 @@ Commit:
 - Create: web/src/components/ScreenState.tsx
 - Create: web/src/components/screen-state.css
 - Create: web/src/components/ScreenState.test.tsx
+- Modify: web/src/hooks/usePolling.ts
+- Create: web/src/hooks/usePolling.test.tsx
 - Modify: web/src/screens/Today.tsx
 - Modify: web/src/screens/Potd.tsx
 - Modify: web/src/screens/Insights.tsx
@@ -163,6 +165,7 @@ Commit:
 **Interfaces:**
 - Produces ScreenState({ title, message?, onRetry }) with an accessible retry action.
 - Each screen adds loadError plus a reload function that resets the error before its existing requests.
+- Preserves usePolling's public return type while preventing an older request result from replacing a newer mutation-triggered refetch.
 
 - [ ] **Step 1: Write the failing ScreenState test**
 
@@ -178,11 +181,19 @@ Expected: FAIL because ScreenState is missing.
 
 Render a section with role=alert, a concise helper message, and an existing btn btn--outline action named Try again. Keep it in normal screen flow; do not add a nested card or overlay.
 
-- [ ] **Step 4: Replace silent initial-load failures**
+- [ ] **Step 4: Protect polling freshness**
+
+Write a hook test with two deferred fetch promises. Trigger the initial request,
+call refetch before it resolves, settle the second request first, then settle
+the first request. Assert the hook retains the second response. Implement a
+monotonic request ID in usePolling and only call setData/setError/setIsLoading
+for the most recently started request.
+
+- [ ] **Step 5: Replace silent initial-load failures**
 
 For Today, render `<ScreenState title="Today's check-in is unavailable" onRetry={refetch} />` when polling returns no data and an error; retain the skeleton for no-data/no-error. For POTD, load potdToday and potdBank from one callback and show ScreenState when no question loaded and loadError is true. For Insights and Profile, show it only when their primary data is absent. For Upload, show it inside Recent proofs if listProofs fails while keeping upload functional.
 
-- [ ] **Step 5: Verify GREEN and commit**
+- [ ] **Step 6: Verify GREEN and commit**
 
 Run: npm --prefix web run test -- src/components/ScreenState.test.tsx
 
@@ -190,7 +201,7 @@ Expected: PASS.
 
 Commit:
 
-    git add web/src/components/ScreenState.tsx web/src/components/screen-state.css web/src/components/ScreenState.test.tsx web/src/screens/Today.tsx web/src/screens/Potd.tsx web/src/screens/Insights.tsx web/src/screens/Profile.tsx web/src/screens/Upload.tsx
+    git add web/src/components/ScreenState.tsx web/src/components/screen-state.css web/src/components/ScreenState.test.tsx web/src/hooks/usePolling.ts web/src/hooks/usePolling.test.tsx web/src/screens/Today.tsx web/src/screens/Potd.tsx web/src/screens/Insights.tsx web/src/screens/Profile.tsx web/src/screens/Upload.tsx
     git commit -m "feat: add retryable screen states"
 
 ### Task 5: Make proof upload single-submit and navigation safe
