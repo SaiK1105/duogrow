@@ -11,9 +11,12 @@ if (command.length === 0 || command[0] === "--") {
 }
 
 const isWindowsBatchCommand = process.platform === "win32" && /\.(?:cmd|bat)$/i.test(command[0]);
-const unsafeBatchCharacter = /[&|<>()^%!`"\r\n]/;
-if (isWindowsBatchCommand && command.some((argument) => unsafeBatchCharacter.test(argument))) {
-  console.error("Windows batch commands cannot contain command-shell metacharacters.");
+const unsafeBatchCharacter = /[&|<>()^%!`\r\n]/;
+const unsafeBatchQuotingOrWhitespace = /["\s]/;
+if (isWindowsBatchCommand && command.some(
+  (argument) => unsafeBatchCharacter.test(argument) || unsafeBatchQuotingOrWhitespace.test(argument),
+)) {
+  console.error("Windows batch commands with quotes, whitespace, or command-shell metacharacters are unsupported for safety.");
   process.exit(1);
 }
 

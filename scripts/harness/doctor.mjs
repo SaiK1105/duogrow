@@ -60,6 +60,7 @@ try {
     'env.DEMO_FAKE_AI = "1"',
     "shell: isWindowsBatchCommand",
     "unsafeBatchCharacter.test(argument)",
+    "unsafeBatchQuotingOrWhitespace.test(argument)",
   ];
   if (requiredContract.every((fragment) => isolatedRun.includes(fragment))) {
     console.log("ok isolated-run safety contract");
