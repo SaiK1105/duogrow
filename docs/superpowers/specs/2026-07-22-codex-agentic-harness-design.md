@@ -17,8 +17,10 @@ end-user feature to DuoGrow.
 The harness has five small layers, each with one responsibility:
 
 1. **Project configuration** — `.codex/config.toml` limits delegation to a
-   shallow, predictable fan-out without pinning a model, permission mode, or
-   personal account setting.
+   shallow, predictable fan-out without pinning a model, default permission
+   mode, or personal account setting. The explicitly read-only scout and
+   reviewer roles enforce read-only access; all change-capable roles inherit
+   the user's active permissions.
 2. **Specialized agents** — `.codex/agents/` provides a read-only scout, a
    scoped implementer, a read-only reviewer, and a verifier. They share a
    concise evidence format and never compete to edit the same files.

@@ -11,7 +11,9 @@
 ## Global Constraints
 
 - Do not add runtime OpenAI/Codex dependencies or end-user AI features.
-- Do not pin models, sandbox modes, approval policy, or personal account settings.
+- Do not pin a project-default model, sandbox mode, approval policy, or personal
+  account setting. Only the explicitly read-only scout and reviewer may enforce
+  `sandbox_mode = "read-only"`; implementer and verifier inherit user permissions.
 - Harness data must live under the OS temporary directory, not OneDrive, this repo, or `~/.duogrow`.
 - Isolated child runs set `DEMO_FAKE_AI=1` and remove `ANTHROPIC_API_KEY`.
 - No automatic reset, seed, process stop, commit, push, deployment, or user-data mutation.
