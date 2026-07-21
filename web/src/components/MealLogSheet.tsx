@@ -34,8 +34,14 @@ export function MealLogSheet({
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const parsedCalories = Number.parseInt(calories, 10)
+    const numericCalories = Number(calories)
 
-    if (!Number.isFinite(parsedCalories) || parsedCalories < 1) {
+    if (
+      !Number.isFinite(parsedCalories) ||
+      parsedCalories < 1 ||
+      !Number.isInteger(numericCalories) ||
+      numericCalories !== parsedCalories
+    ) {
       setError('Enter a positive number of calories.')
       return
     }
@@ -59,11 +65,15 @@ export function MealLogSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby="meal-log-sheet-title"
+        aria-describedby="meal-log-sheet-description"
       >
         <p className="meal-log-sheet__eyebrow">Daily nutrition</p>
         <h2 id="meal-log-sheet-title" className="meal-log-sheet__title">
           Log a meal
         </h2>
+        <p id="meal-log-sheet-description" className="meal-log-sheet__description">
+          Add your best estimate for this meal to today&apos;s nutrition total.
+        </p>
         <form noValidate onSubmit={submit}>
           <label className="meal-log-sheet__label" htmlFor="meal-calories">
             Calories

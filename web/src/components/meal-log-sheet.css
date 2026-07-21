@@ -29,11 +29,18 @@
 }
 
 .meal-log-sheet__title {
-  margin: 0 0 var(--space-5);
+  margin: 0;
   color: var(--text-primary);
   font-family: var(--font-display);
   font-size: var(--text-display-md);
   line-height: var(--leading-tight);
+}
+
+.meal-log-sheet__description {
+  margin: var(--space-2) 0 var(--space-5);
+  color: var(--text-secondary);
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
 }
 
 .meal-log-sheet__label {
