@@ -7,6 +7,13 @@ import type { ProofResponse } from '../api/types'
 import { ToastProvider } from '../components/Toast'
 import { Upload } from './Upload'
 
+const { mockNavigate } = vi.hoisted(() => ({ mockNavigate: vi.fn() }))
+
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>()
+  return { ...actual, useNavigate: () => mockNavigate }
+})
+
 vi.mock('../api/client', () => ({
   api: {
     listProofs: vi.fn(),
@@ -81,10 +88,14 @@ describe('Upload', () => {
     expect(resolveUpload).toBeDefined()
   })
 
-  it('clears a pending result navigation timer when unmounted', async () => {
+  it('does not navigate when an upload resolves after Upload unmounts', async () => {
     vi.useFakeTimers()
-    mockedApi.uploadProof.mockResolvedValue({ proof: { id: 'proof-1' } } as ProofResponse)
-    const clearTimeout = vi.spyOn(window, 'clearTimeout')
+    let resolveUpload: ((value: ProofResponse) => void) | undefined
+    mockedApi.uploadProof.mockReturnValueOnce(
+      new Promise<ProofResponse>((resolve) => {
+        resolveUpload = resolve
+      }),
+    )
 
     const { container, unmount } = renderUpload()
     const file = new File(['proof'], 'proof.png', { type: 'image/png' })
@@ -93,11 +104,13 @@ describe('Upload', () => {
     fireEvent.change(input!, { target: { files: [file] } })
 
     fireEvent.click(screen.getByRole('button', { name: 'Verify with AI' }))
+    unmount()
+    resolveUpload?.({ proof: { id: 'proof-1' } } as ProofResponse)
     await act(async () => {
       await Promise.resolve()
     })
-    unmount()
+    await vi.advanceTimersByTimeAsync(1800)
 
-    expect(clearTimeout).toHaveBeenCalled()
+    expect(mockNavigate).not.toHaveBeenCalled()
   })
 })

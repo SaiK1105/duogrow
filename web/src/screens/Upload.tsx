@@ -39,6 +39,7 @@ export function Upload() {
   const [analyzing, setAnalyzing] = useState(false)
   const [statusIndex, setStatusIndex] = useState(0)
   const resultTimerRef = useRef<number | null>(null)
+  const isMountedRef = useRef(false)
   const [recent, setRecent] = useState<Proof[]>([])
   const [loadError, setLoadError] = useState(false)
   const [isRecentLoading, setIsRecentLoading] = useState(true)
@@ -74,7 +75,9 @@ export function Upload() {
   }, [analyzing])
 
   useEffect(() => {
+    isMountedRef.current = true
     return () => {
+      isMountedRef.current = false
       if (resultTimerRef.current !== null) {
         window.clearTimeout(resultTimerRef.current)
       }
@@ -96,10 +99,12 @@ export function Upload() {
     const started = performance.now()
     try {
       const res = await api.uploadProof(file, choice === 'auto' ? undefined : choice)
+      if (!isMountedRef.current) return
       const elapsed = performance.now() - started
       const wait = Math.max(0, MIN_ANALYZE_MS - elapsed)
       resultTimerRef.current = window.setTimeout(() => navigate(`/verify/${res.proof.id}`), wait)
     } catch {
+      if (!isMountedRef.current) return
       setAnalyzing(false)
       showToast('Upload failed — try again', 'danger')
     }

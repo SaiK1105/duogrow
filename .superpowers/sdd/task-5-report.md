@@ -43,3 +43,37 @@ was GREEN: 3/3 tests passed.
 The PowerShell command stream printed a trailing `tsc is not recognized` line
 after successful builds, but each requested command returned exit code 0 and
 the direct web typecheck (`npm --prefix web run typecheck`) also passed.
+
+## Follow-up: post-unmount upload continuation
+
+Reviewer feedback identified that clearing an already-created timer did not
+stop a still-pending upload from scheduling a new navigation timer after the
+screen unmounted.
+
+### TDD evidence
+
+The timer implementation-detail assertion was replaced with a behavior-level
+test. It starts a deferred upload, unmounts the screen, resolves the upload,
+advances the analysis timer, and asserts that the mocked navigation function
+never receives `/verify/proof-1`.
+
+This test was RED before the fix: navigation was called once with
+`/verify/proof-1`. It is GREEN after the fix.
+
+### Implementation
+
+- Added an effect-managed `isMountedRef`.
+- The post-upload success continuation returns before scheduling navigation
+  when the screen is unmounted.
+- The failure continuation returns before setting state or showing a toast
+  when unmounted.
+- Existing cleanup for a timer created before unmount remains in place.
+
+### Follow-up verification
+
+- Focused Upload suite — pass (3 tests)
+- Full web test suite — pass (5 files, 19 tests)
+- `npm run typecheck` — pass
+- `npm --prefix web run lint` — pass with the existing `Toast.tsx` warning
+- `npm run build` — pass
+- `git diff --check` — pass
