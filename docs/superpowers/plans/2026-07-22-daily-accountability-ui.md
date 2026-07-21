@@ -74,7 +74,7 @@ Expected: the runner exits successfully before component tests are added.
 - Create: web/src/components/MealLogSheet.test.tsx
 
 **Interfaces:**
-- Produces MealLogSheet({ isOpen, initialCalories, onCancel, onSubmit }).
+- Produces MealLogSheet({ isOpen, initialCalories, isSubmitting?, onCancel, onSubmit }).
 - onSubmit(calories: number): void is called only with a positive integer.
 - Consumes no API client; Today owns persistence.
 
@@ -94,7 +94,7 @@ Expected: FAIL because MealLogSheet does not yet resolve.
 
 - [ ] **Step 3: Implement the smallest accessible dialog**
 
-Render nothing when isOpen is false. When open, render a dialog overlay with role=dialog, aria-modal=true, a labelled Calories input, buttons named 300 calories, 500 calories, and 700 calories, plus Cancel and Add meal actions. Use Number.parseInt; reject non-finite numbers and values below one without closing the sheet. Focus the input through a ref/effect.
+Render nothing when isOpen is false. When open, render a dialog overlay with role=dialog, aria-modal=true, a labelled Calories input, buttons named 300 calories, 500 calories, and 700 calories, plus Cancel and Add meal actions. Use Number.parseInt; reject non-finite numbers and values below one without closing the sheet. Focus the input through a ref/effect. Support the optional isSubmitting prop by disabling Add meal during a submission.
 
 - [ ] **Step 4: Verify GREEN and commit**
 
@@ -115,7 +115,7 @@ Commit:
 - Create: web/src/screens/Today.test.tsx
 
 **Interfaces:**
-- Consumes MealLogSheet from Task 2.
+- Consumes MealLogSheet from Task 2. Task 3 may extend it only with the optional isSubmitting prop required to disable the confirmation action while saving.
 - Today owns isMealSheetOpen, isSaving, and the original launch-button ref.
 - Existing api.updateModule(module, patch) is unchanged.
 
