@@ -1,0 +1,9 @@
+{
+  "shape": "package",
+  "pkg": "web",
+  "globalName": "DuoGrow",
+  "srcDir": "src/components",
+  "tokensPkg": "web",
+  "tokensGlob": "src/styles/*.css",
+  "readmeHeader": ".design-sync/conventions.md"
+}
