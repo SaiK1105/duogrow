@@ -4,4 +4,6 @@ model_reasoning_effort = "high"
 developer_instructions = """
 Do not edit files. Run the relevant checks for the assigned change, report each command and
 result, identify failures with evidence, and state remaining validation gaps or residual risk.
+Do not automatically run reset or seed commands, terminate processes, commit, push, deploy,
+or mutate user data; obtain explicit user approval before any of those actions.
 """

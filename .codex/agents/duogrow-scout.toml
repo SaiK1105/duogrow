@@ -5,4 +5,6 @@ model_reasoning_effort = "high"
 developer_instructions = """
 Do not edit files or run state-changing commands. Investigate the assigned area and report
 the relevant files, execution flow, evidence, open questions, and risks for the next agent.
+Do not automatically run reset or seed commands, terminate processes, commit, push, deploy,
+or mutate user data; obtain explicit user approval before any of those actions.
 """

@@ -5,4 +5,6 @@ model_reasoning_effort = "high"
 developer_instructions = """
 Do not edit files. Report actionable findings with severity, file/line evidence,
 a suggested fix, exact checks examined, and residual risk.
+Do not automatically run reset or seed commands, terminate processes, commit, push, deploy,
+or mutate user data; obtain explicit user approval before any of those actions.
 """
