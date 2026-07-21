@@ -27,24 +27,36 @@ export function usePolling<T>(
   fetcherRef.current = fetcher
 
   const isMountedRef = useRef(true)
-  const requestIdRef = useRef(0)
+  const queuedRequestsRef = useRef(0)
+  const requestQueueRef = useRef<Promise<void>>(Promise.resolve())
 
-  const refetch = useCallback(async () => {
-    const requestId = ++requestIdRef.current
+  const enqueueRefetch = useCallback((): Promise<void> => {
+    const isIdle = queuedRequestsRef.current === 0
+    queuedRequestsRef.current += 1
     if (isMountedRef.current) setIsLoading(true)
 
-    try {
-      const result = await fetcherRef.current()
-      if (!isMountedRef.current || requestId !== requestIdRef.current) return
-      setData(result)
-      setError(null)
-    } catch (err) {
-      if (!isMountedRef.current || requestId !== requestIdRef.current) return
-      setError(err instanceof Error ? err : new Error('Request failed'))
-    } finally {
-      if (isMountedRef.current && requestId === requestIdRef.current) setIsLoading(false)
+    const runRequest = async (): Promise<void> => {
+      try {
+        const result = await fetcherRef.current()
+        if (!isMountedRef.current) return
+        setData(result)
+        setError(null)
+      } catch (err) {
+        if (!isMountedRef.current) return
+        setError(err instanceof Error ? err : new Error('Request failed'))
+      } finally {
+        queuedRequestsRef.current -= 1
+        if (isMountedRef.current && queuedRequestsRef.current === 0) setIsLoading(false)
+      }
     }
+
+    const request = isIdle ? runRequest() : requestQueueRef.current.then(runRequest)
+
+    requestQueueRef.current = request
+    return request
   }, [])
+
+  const refetch = useCallback(() => enqueueRefetch(), [enqueueRefetch])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -59,15 +71,15 @@ export function usePolling<T>(
     let timer: number | undefined
 
     const tick = () => {
-      if (!document.hidden) void refetch()
+      if (!document.hidden && queuedRequestsRef.current === 0) void enqueueRefetch()
     }
 
     // Prime immediately, then poll.
-    void refetch()
+    tick()
     timer = window.setInterval(tick, intervalMs)
 
     const onVisibility = () => {
-      if (!document.hidden) void refetch()
+      if (!document.hidden) void enqueueRefetch()
     }
     document.addEventListener('visibilitychange', onVisibility)
 
@@ -75,7 +87,7 @@ export function usePolling<T>(
       if (timer !== undefined) window.clearInterval(timer)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [enabled, intervalMs, refetch])
+  }, [enabled, intervalMs, enqueueRefetch])
 
   return { data, error, isLoading, refetch }
 }
