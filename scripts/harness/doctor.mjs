@@ -52,6 +52,34 @@ for (const [name, command] of Object.entries(expectedScripts)) {
   }
 }
 
+try {
+  const isolatedRun = await readFile(new URL("./isolated-run.mjs", import.meta.url), "utf8");
+  const requiredContract = [
+    'name.toUpperCase() !== "ANTHROPIC_API_KEY"',
+    "env.DATA_DIR = dataDir",
+    'env.DEMO_FAKE_AI = "1"',
+  ];
+  if (requiredContract.every((fragment) => isolatedRun.includes(fragment))) {
+    console.log("ok isolated-run safety contract");
+  } else {
+    failures.push("isolated-run is missing the required environment safety contract");
+  }
+} catch (error) {
+  failures.push(`could not inspect isolated-run: ${error.message}`);
+}
+
+try {
+  const stateIgnore = await readFile(new URL("../../.agent-state/.gitignore", import.meta.url), "utf8");
+  const patterns = new Set(stateIgnore.split(/\r?\n/).map((line) => line.trim()));
+  if (patterns.has("*") && patterns.has("!.gitignore") && patterns.has("!README.md")) {
+    console.log("ok agent-state ignore contract");
+  } else {
+    failures.push(".agent-state/.gitignore must ignore run state and preserve README.md and .gitignore");
+  }
+} catch (error) {
+  failures.push(`could not inspect .agent-state/.gitignore: ${error.message}`);
+}
+
 if (failures.length > 0) {
   console.error("Harness doctor found problems:");
   for (const failure of failures) console.error(`- ${failure}`);
