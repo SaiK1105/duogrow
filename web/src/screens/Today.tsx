@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import type { ModuleKey, Snapshot } from '../api/types'
@@ -7,6 +7,7 @@ import { CoachBubble } from '../components/CoachBubble'
 import { DuoProgressBar } from '../components/DuoProgressBar'
 import { MinusIcon, PlusIcon, UploadIcon } from '../components/icons'
 import { ModuleRow } from '../components/ModuleRow'
+import { MealLogSheet } from '../components/MealLogSheet'
 import { StreakFlame } from '../components/StreakFlame'
 import { useToast } from '../components/Toast'
 import { usePolling } from '../hooks/usePolling'
@@ -23,6 +24,9 @@ export function Today() {
   const { showToast } = useToast()
   const { data, refetch } = usePolling(api.today, 3000)
   const shownCheers = useRef<Set<string>>(new Set())
+  const mealTriggerRef = useRef<HTMLButtonElement>(null)
+  const [isMealSheetOpen, setIsMealSheetOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   // Surface unseen cheers from partner as toasts, then mark them seen.
   useEffect(() => {
@@ -37,34 +41,41 @@ export function Today() {
 
   const mutate = useCallback(
     async (fn: () => Promise<unknown>) => {
+      if (isSaving) return false
+
+      setIsSaving(true)
       try {
         await fn()
         await refetch()
+        return true
       } catch {
         showToast('Could not save that — try again', 'danger')
+        return false
+      } finally {
+        setIsSaving(false)
       }
     },
-    [refetch, showToast],
+    [isSaving, refetch, showToast],
   )
 
   const setModule = (module: ModuleKey, patch: { status?: string; value?: number }) =>
     mutate(() => api.updateModule(module, patch))
 
-  const sendCheer = () =>
-    mutate(async () => {
+  const sendCheer = () => {
+    void mutate(async () => {
       await api.cheer('🎉')
       showToast('Cheer sent 🎉', 'success')
     })
+  }
 
-  const logMeal = () => {
-    const raw = window.prompt('Calories for this meal?', '500')
-    if (raw == null) return
-    const kcal = parseInt(raw, 10)
-    if (Number.isNaN(kcal) || kcal <= 0) {
-      showToast('Enter a number of calories', 'warn')
-      return
-    }
-    void setModule('diet', { value: moduleValue(data?.you ?? null, 'diet') + kcal })
+  const closeMealSheet = () => {
+    setIsMealSheetOpen(false)
+    mealTriggerRef.current?.focus()
+  }
+
+  const logMeal = async (calories: number) => {
+    const didSave = await setModule('diet', { value: moduleValue(data?.you ?? null, 'diet') + calories })
+    if (didSave) closeMealSheet()
   }
 
   if (!data) {
@@ -85,7 +96,7 @@ export function Today() {
     switch (key) {
       case 'wake':
         return done ? null : (
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setModule('wake', { status: 'done' })}>
+          <button type="button" className="btn btn--ghost btn--sm" disabled={isSaving} onClick={() => void setModule('wake', { status: 'done' })}>
             Check in
           </button>
         )
@@ -94,20 +105,27 @@ export function Today() {
           <button
             type="button"
             className="btn btn--ghost btn--sm"
-            onClick={() => setModule('study', { value: moduleValue(you, 'study') + 30 })}
+            disabled={isSaving}
+            onClick={() => void setModule('study', { value: moduleValue(you, 'study') + 30 })}
           >
             +30m
           </button>
         )
       case 'workout':
         return done ? null : (
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setModule('workout', { status: 'done' })}>
+          <button type="button" className="btn btn--ghost btn--sm" disabled={isSaving} onClick={() => void setModule('workout', { status: 'done' })}>
             Mark done
           </button>
         )
       case 'diet':
         return (
-          <button type="button" className="btn btn--ghost btn--sm" onClick={logMeal}>
+          <button
+            ref={mealTriggerRef}
+            type="button"
+            className="btn btn--ghost btn--sm"
+            disabled={isSaving}
+            onClick={() => setIsMealSheetOpen(true)}
+          >
             + Log meal
           </button>
         )
@@ -118,7 +136,8 @@ export function Today() {
             <button
               type="button"
               className="today__step-btn"
-              onClick={() => setModule('tasks', { value: Math.max(0, cur - 1) })}
+              disabled={isSaving}
+              onClick={() => void setModule('tasks', { value: Math.max(0, cur - 1) })}
               aria-label="Remove a task"
             >
               <MinusIcon size={16} />
@@ -127,7 +146,8 @@ export function Today() {
             <button
               type="button"
               className="today__step-btn"
-              onClick={() => setModule('tasks', { value: cur + 1 })}
+              disabled={isSaving}
+              onClick={() => void setModule('tasks', { value: cur + 1 })}
               aria-label="Add a task"
             >
               <PlusIcon size={16} />
@@ -217,6 +237,13 @@ export function Today() {
         </button>
         <CheerButton onCheer={sendCheer} />
       </div>
+
+      <MealLogSheet
+        isOpen={isMealSheetOpen}
+        initialCalories={500}
+        onCancel={closeMealSheet}
+        onSubmit={(calories) => void logMeal(calories)}
+      />
     </div>
   )
 }

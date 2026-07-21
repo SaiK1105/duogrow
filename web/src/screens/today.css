@@ -85,6 +85,11 @@
   color: var(--text-on-accent);
 }
 
+.today__step-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .today__step-count {
   min-width: 1.4rem;
   text-align: center;
