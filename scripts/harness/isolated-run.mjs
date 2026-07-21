@@ -4,19 +4,20 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 const command = process.argv.slice(2);
+const unsafeCommandNames = new Set(["cmd", "cmd.exe", "powershell", "powershell.exe", "pwsh", "pwsh.exe"]);
 
 if (command.length === 0 || command[0] === "--") {
   console.error("Usage: npm run harness:isolated -- <command> [args...]");
   process.exit(1);
 }
 
-const isWindowsBatchCommand = process.platform === "win32" && /\.(?:cmd|bat)$/i.test(command[0]);
-const unsafeBatchCharacter = /[&|<>()^%!`\r\n]/;
-const unsafeBatchQuotingOrWhitespace = /["\s]/;
-if (isWindowsBatchCommand && command.some(
-  (argument) => unsafeBatchCharacter.test(argument) || unsafeBatchQuotingOrWhitespace.test(argument),
-)) {
-  console.error("Windows batch commands with quotes, whitespace, or command-shell metacharacters are unsupported for safety.");
+const commandName = command[0].split(/[\\/]/).at(-1).toLowerCase();
+if (unsafeCommandNames.has(commandName)) {
+  console.error("Command interpreters are rejected by harness:isolated as a safety boundary.");
+  process.exit(1);
+}
+if (commandName.endsWith(".cmd") || commandName.endsWith(".bat")) {
+  console.error("Windows batch launchers are rejected by harness:isolated as a safety boundary.");
   process.exit(1);
 }
 
@@ -29,17 +30,12 @@ env.DEMO_FAKE_AI = "1";
 
 console.error(`Created isolated harness data directory: ${dataDir}`);
 
-const commandName = command[0].toLowerCase();
 const npmExecPath = Object.entries(process.env).find(
   ([name]) => name.toLowerCase() === "npm_execpath",
 )?.[1];
-const child = process.platform === "win32" && (commandName === "npm" || commandName === "npm.cmd") && npmExecPath
+const child = process.platform === "win32" && commandName === "npm" && npmExecPath
   ? spawn(process.execPath, [npmExecPath, ...command.slice(1)], { env, stdio: "inherit" })
-  : spawn(command[0], command.slice(1), {
-    env,
-    shell: isWindowsBatchCommand,
-    stdio: "inherit",
-  });
+  : spawn(command[0], command.slice(1), { env, stdio: "inherit" });
 child.once("error", (error) => {
   console.error(`Could not run ${command[0]}: ${error.message}`);
   process.exitCode = 1;

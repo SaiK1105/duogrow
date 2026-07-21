@@ -73,8 +73,9 @@ commands: it supplies a fresh temporary `DATA_DIR`, forces demo AI, removes all
 `ANTHROPIC_API_KEY` casing, and retains the directory for inspection. It is not
 a sandbox, does not remove other secrets, and a command can ignore `DATA_DIR`.
 Get explicit permission before any command that may touch normal or untrusted
-data. The batch-command input restriction described in
-[`docs/agent-harness/safety.md`](docs/agent-harness/safety.md) applies.
+data. Command interpreters (cmd, PowerShell, and pwsh) and .cmd/.bat launchers
+are rejected outright as a safety boundary: the wrapper never invokes a command
+shell. See [`docs/agent-harness/safety.md`](docs/agent-harness/safety.md).
 
 Use `npm run verify` (or `npm run verify:ci`) for the standard web-focused gate.
 It does not cover server integration or tracked two-browser E2E flows; plan

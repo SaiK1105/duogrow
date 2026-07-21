@@ -27,12 +27,13 @@ This is not a sandbox. It does not remove other secrets, and an arbitrary
 command can ignore `DATA_DIR` or otherwise reach normal or untrusted data.
 Request explicit permission before running a command that could touch that data.
 
-## Windows batch restriction
+## Command-interpreter boundary
 
-On Windows, `.cmd` and `.bat` command inputs are rejected if any argument has
-whitespace, quotes, or command-shell metacharacters. This prevents unsafe shell
-interpretation; use a supported executable with safely separated arguments
-instead.
+`harness:isolated` rejects `cmd`, `cmd.exe`, `powershell`,
+`powershell.exe`, `pwsh`, and `pwsh.exe`, case-insensitively. It also
+rejects every `.cmd` and `.bat` launcher outright. This is a safety boundary
+against command-interpreter bypass: the wrapper never invokes a command shell.
+Use a normal executable with separately supplied arguments instead.
 
 ## Ownership and reporting
 

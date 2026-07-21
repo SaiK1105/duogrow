@@ -32,6 +32,9 @@ After findings are resolved, `duogrow-verifier` runs approved checks without
 editing. It inherits the caller's permissions, so its command scope still needs
 the relevant user permission. The verifier report must list commands, each exit
 code, coverage performed, data path, failures or gaps, and residual risks.
+For isolated data commands, command interpreters and `.cmd`/`.bat` launchers
+are rejected outright as a safety boundary; see [safety](safety.md). This is not
+a sandbox or a general secret/data barrier.
 
 ## 4. Handoff
 

@@ -12,12 +12,61 @@ if (args.length !== 2 || args[0] !== "--id" || !idPattern.test(args[1])) {
 
 const id = args[1];
 const stateRoot = fileURLToPath(new URL("../../.agent-state/", import.meta.url));
-const runDirectory = fileURLToPath(new URL(`../../.agent-state/${id}/`, import.meta.url));
-const statusPath = fileURLToPath(new URL(`../../.agent-state/${id}/status.md`, import.meta.url));
+const runDirectory = fileURLToPath(new URL("../../.agent-state/" + id + "/", import.meta.url));
+const statusPath = fileURLToPath(new URL("../../.agent-state/" + id + "/status.md", import.meta.url));
+const ledger = [
+  "# Harness run: " + id,
+  "",
+  "## Scope",
+  "",
+  "- Summary:",
+  "- Files owned:",
+  "",
+  "## Scout evidence",
+  "",
+  "- Relevant paths:",
+  "- Execution flow:",
+  "- Open questions:",
+  "",
+  "## Ownership",
+  "",
+  "- Writer:",
+  "- Reviewer:",
+  "- Verifier:",
+  "",
+  "## Acceptance criteria",
+  "",
+  "- [ ]",
+  "",
+  "## Commands",
+  "",
+  "- Command:",
+  "- Exit code:",
+  "",
+  "## Data",
+  "",
+  "- Isolated data directory:",
+  "- Default user data touched: no",
+  "",
+  "## Findings",
+  "",
+  "- ",
+  "",
+  "## Commits",
+  "",
+  "- ",
+  "",
+  "## Handoff",
+  "",
+  "- Status:",
+  "- Residual risks:",
+  "- Next action:",
+  "",
+].join("\n");
 
 try {
   await access(runDirectory);
-  console.error(`Refusing to overwrite existing harness run: ${id}`);
+  console.error("Refusing to overwrite existing harness run: " + id);
   process.exit(1);
 } catch (error) {
   if (error.code !== "ENOENT") throw error;
@@ -25,10 +74,6 @@ try {
 
 await mkdir(stateRoot, { recursive: true });
 await mkdir(runDirectory);
-await writeFile(
-  statusPath,
-  `# Harness run: ${id}\n\n## Scope\n\n- Summary:\n- Files owned:\n\n## Ownership\n\n- Writer:\n- Reviewer:\n- Verifier:\n\n## Acceptance criteria\n\n- [ ]\n\n## Commands\n\n- Command:\n- Exit code:\n\n## Data\n\n- Isolated data directory:\n- Default user data touched: no\n\n## Findings\n\n- \n\n## Commits\n\n- \n\n## Handoff\n\n- Status:\n- Residual risks:\n- Next action:\n`,
-  { encoding: "utf8", flag: "wx" },
-);
+await writeFile(statusPath, ledger, { encoding: "utf8", flag: "wx" });
 
-console.log(`Created harness run ledger: ${statusPath}`);
+console.log("Created harness run ledger: " + statusPath);

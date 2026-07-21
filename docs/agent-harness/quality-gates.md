@@ -32,3 +32,5 @@ data path, and the remaining gap in the verifier report.
 For a cooperating smoke command that accepts `DATA_DIR`, use
 [`npm run harness:isolated -- <command>`](safety.md#isolated-data). It is not a
 sandbox; follow the safety permission boundary for normal or untrusted data.
+The wrapper rejects command interpreters and `.cmd`/`.bat` launchers outright
+as a safety boundary, not as a general secret or data barrier.

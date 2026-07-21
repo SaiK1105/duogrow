@@ -16,6 +16,11 @@
   `sandbox_mode = "read-only"`; implementer and verifier inherit user permissions.
 - Harness data must live under the OS temporary directory, not OneDrive, this repo, or `~/.duogrow`.
 - Isolated child runs set `DEMO_FAKE_AI=1` and remove `ANTHROPIC_API_KEY`.
+- **Security-driven deviation:** generic Windows batch support is intentionally
+  not implemented. `harness:isolated` rejects command interpreters and every
+  `.cmd`/`.bat` launcher outright, so it never invokes a command shell. This
+  is a narrow command-launch safety boundary, not a sandbox or a general
+  secret/data barrier.
 - No automatic reset, seed, process stop, commit, push, deployment, or user-data mutation.
 - `npm run verify` covers only web tests, typecheck, web lint, production build, and `git diff --check`.
 
@@ -120,7 +125,10 @@ const checks = [
 ];
 ```
 
-Use `spawn` with inherited stdio, choose `npm.cmd` on Windows, and stop at the first nonzero exit.
+Use `spawn` with inherited stdio, use Node's npm CLI entry point for a plain
+`npm` command on Windows, and stop at the first nonzero exit. Do not support
+generic `.cmd`/`.bat` launchers: reject them and command interpreters before
+creating isolated data, as the security-driven deviation above requires.
 
 - [ ] **Step 4: Implement isolated-child and ledger semantics**
 

@@ -219,8 +219,9 @@ npm run verify
 `DEMO_FAKE_AI=1`, and removes every casing of `ANTHROPIC_API_KEY` from the child
 environment. It is not a sandbox, does not scrub other secrets, and an arbitrary
 command can ignore `DATA_DIR`; request explicit permission before commands that
-could touch normal or untrusted data. On Windows, `.cmd` and `.bat` inputs
-containing whitespace, quotes, or command-shell metacharacters are rejected.
+could touch normal or untrusted data. Command interpreters (cmd, PowerShell,
+and pwsh) plus .cmd and .bat launchers are rejected outright as a safety
+boundary, so the wrapper never invokes a command shell.
 `npm run verify` / `npm run verify:ci`
 runs web tests, typecheck, web lint, a production build, and whitespace-diff
 checks only; server integration and a tracked two-browser E2E suite are planned

@@ -31,7 +31,10 @@ The harness has five small layers, each with one responsibility:
 4. **Safe run isolation** — a small Node wrapper creates a unique directory
    beneath the OS temporary directory, explicitly forces demo AI, clears any
    inherited Anthropic key, and passes that `DATA_DIR` only to its child
-   command. The harness never seeds or resets the default `~/.duogrow` data.
+   command. It rejects command interpreters and `.cmd`/`.bat` launchers
+   outright as a safety boundary, never invoking a command shell. The wrapper is
+   not a sandbox or a general secret/data barrier, and the harness never seeds or
+   resets the default `~/.duogrow` data.
 5. **Operating documentation** — `docs/agent-harness/` defines lifecycle,
    roles, evidence, quality gates, and safety rules. `.agent-state/` keeps
    per-run notes ignored while retaining a tracked template and format.

@@ -27,6 +27,10 @@ The run command writes `.agent-state/<id>/status.md`. This state is ignored by
 Git and the command refuses to overwrite an existing run, so use a new ID for
 each attempt.
 
+For isolated child commands, command interpreters and `.cmd`/`.bat` launchers
+are rejected outright as a safety boundary; the wrapper never invokes a command
+shell. This does not make the wrapper a sandbox or a general secret/data barrier.
+
 - [Workflow](workflow.md) — role sequence, ownership, and ledger use.
 - [Quality gates](quality-gates.md) — the checks required by change type.
 - [Safety](safety.md) — isolated data and permission boundaries.

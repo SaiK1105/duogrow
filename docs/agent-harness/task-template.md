@@ -33,6 +33,8 @@ Copy this template for a nontrivial task before creating its ledger.
 - Standard gate: `npm run verify`
 - Isolated command, if data can be written:
   `npm run harness:isolated -- <command>`
+  (command interpreters and `.cmd`/`.bat` launchers are rejected outright as a
+  safety boundary; this is not a sandbox or general secret/data barrier)
 
 ## Permission checkpoint
 
