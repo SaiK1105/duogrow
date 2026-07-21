@@ -8,6 +8,7 @@ import { DuoProgressBar } from '../components/DuoProgressBar'
 import { MinusIcon, PlusIcon, UploadIcon } from '../components/icons'
 import { ModuleRow } from '../components/ModuleRow'
 import { MealLogSheet } from '../components/MealLogSheet'
+import { ScreenState } from '../components/ScreenState'
 import { StreakFlame } from '../components/StreakFlame'
 import { useToast } from '../components/Toast'
 import { usePolling } from '../hooks/usePolling'
@@ -22,7 +23,7 @@ function moduleValue(snap: Snapshot | null, key: ModuleKey): number {
 export function Today() {
   const navigate = useNavigate()
   const { showToast } = useToast()
-  const { data, refetch } = usePolling(api.today, 3000)
+  const { data, error, refetch } = usePolling(api.today, 3000)
   const shownCheers = useRef<Set<string>>(new Set())
   const mealTriggerRef = useRef<HTMLButtonElement>(null)
   const shouldRestoreMealFocusRef = useRef(false)
@@ -89,8 +90,14 @@ export function Today() {
   if (!data) {
     return (
       <div className="screen today">
-        <div className="today__skeleton" />
-        <div className="today__skeleton today__skeleton--tall" />
+        {error ? (
+          <ScreenState title="Today's check-in is unavailable" onRetry={refetch} />
+        ) : (
+          <>
+            <div className="today__skeleton" />
+            <div className="today__skeleton today__skeleton--tall" />
+          </>
+        )}
       </div>
     )
   }

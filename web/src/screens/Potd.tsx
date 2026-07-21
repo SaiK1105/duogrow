@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import type { PotdBankItem, PotdTodayResponse } from '../api/types'
 import { DifficultyPill } from '../components/DifficultyPill'
 import { CheckIcon } from '../components/icons'
+import { ScreenState } from '../components/ScreenState'
 import { useToast } from '../components/Toast'
 import './potd.css'
 
@@ -24,16 +25,23 @@ export function Potd() {
 
   const [today, setToday] = useState<PotdTodayResponse | null>(null)
   const [bank, setBank] = useState<PotdBankItem[]>([])
+  const [loadError, setLoadError] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [importing, setImporting] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const loadBank = () => api.potdBank().then((res) => setBank(res.questions)).catch(() => undefined)
+  const load = useCallback(async () => {
+    setLoadError(false)
+    const [todayResult, bankResult] = await Promise.allSettled([api.potdToday(), api.potdBank()])
+
+    if (todayResult.status === 'fulfilled') setToday(todayResult.value)
+    if (bankResult.status === 'fulfilled') setBank(bankResult.value.questions)
+    if (todayResult.status === 'rejected' || bankResult.status === 'rejected') setLoadError(true)
+  }, [])
 
   useEffect(() => {
-    api.potdToday().then(setToday).catch(() => undefined)
-    void loadBank()
-  }, [])
+    void load()
+  }, [load])
 
   const onImport = async (file: File | undefined) => {
     if (!file) return
@@ -41,7 +49,7 @@ export function Potd() {
     try {
       const res = await api.potdUpload(file)
       showToast(`Imported ${res.added} question${res.added === 1 ? '' : 's'}`, 'success')
-      await loadBank()
+      await load()
     } catch {
       showToast('Import failed — check the file', 'danger')
     } finally {
@@ -89,6 +97,8 @@ export function Potd() {
             I solved it — upload proof
           </button>
         </article>
+      ) : loadError ? (
+        <ScreenState title="Problem of the Day is unavailable" onRetry={load} />
       ) : (
         <div className="potd__skeleton" />
       )}

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, clearToken } from '../api/client'
 import type { HealthResponse, MeResponse } from '../api/types'
 import { Avatar } from '../components/Avatar'
+import { ScreenState } from '../components/ScreenState'
 import { useToast } from '../components/Toast'
 import './profile.css'
 
@@ -20,12 +21,22 @@ export function Profile() {
   const [me, setMe] = useState<MeResponse | null>(null)
   const [streak, setStreak] = useState<number | null>(null)
   const [health, setHealth] = useState<HealthResponse | null>(null)
+  const [loadError, setLoadError] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoadError(false)
+    const [meResult, todayResult, healthResult] = await Promise.allSettled([api.me(), api.today(), api.health()])
+
+    if (meResult.status === 'fulfilled') setMe(meResult.value)
+    if (todayResult.status === 'fulfilled') setStreak(todayResult.value.streak)
+    if (healthResult.status === 'fulfilled') setHealth(healthResult.value)
+    else setHealth(null)
+    if (meResult.status === 'rejected' || todayResult.status === 'rejected' || healthResult.status === 'rejected') setLoadError(true)
+  }, [])
 
   useEffect(() => {
-    api.me().then(setMe).catch(() => undefined)
-    api.today().then((t) => setStreak(t.streak)).catch(() => undefined)
-    api.health().then(setHealth).catch(() => setHealth(null))
-  }, [])
+    void load()
+  }, [load])
 
   const signOut = () => {
     clearToken()
@@ -56,7 +67,12 @@ export function Profile() {
         <p className="profile__sub">Your duo and settings.</p>
       </header>
 
-      <section className="profile__duo">
+      {!me && loadError ? (
+        <ScreenState title="Profile is unavailable" onRetry={load} />
+      ) : (
+        <>
+
+          <section className="profile__duo">
         <div className="profile__avatars">
           <Avatar name={self?.name ?? 'You'} tone="you" size={56} ring />
           <Avatar name={partner?.name ?? '?'} tone="partner" size={56} ring />
@@ -69,36 +85,38 @@ export function Profile() {
             {streak}-day streak together <span aria-hidden="true">🔥</span>
           </p>
         )}
-      </section>
+          </section>
 
-      {duo && (
-        <section className="profile__row">
-          <div>
-            <span className="section-title">Invite code</span>
-            <p className="profile__code">{duo.inviteCode}</p>
-          </div>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={copyCode}>
-            Copy
+          {duo && (
+            <section className="profile__row">
+              <div>
+                <span className="section-title">Invite code</span>
+                <p className="profile__code">{duo.inviteCode}</p>
+              </div>
+              <button type="button" className="btn btn--ghost btn--sm" onClick={copyCode}>
+                Copy
+              </button>
+            </section>
+          )}
+
+          <section className="profile__row">
+            <div>
+              <span className="section-title">AI verification</span>
+              <p className="profile__ai-note">Powers proof checks & insights</p>
+            </div>
+            <span className={`profile__ai-chip ${ai.live ? 'is-live' : 'is-demo'}`}>
+              <span className="profile__ai-dot" />
+              {ai.text}
+            </span>
+          </section>
+
+          <button type="button" className="btn btn--danger btn--block profile__signout" onClick={signOut}>
+            Sign out
           </button>
-        </section>
+
+          <p className="profile__foot">DuoGrow · Become better together</p>
+        </>
       )}
-
-      <section className="profile__row">
-        <div>
-          <span className="section-title">AI verification</span>
-          <p className="profile__ai-note">Powers proof checks & insights</p>
-        </div>
-        <span className={`profile__ai-chip ${ai.live ? 'is-live' : 'is-demo'}`}>
-          <span className="profile__ai-dot" />
-          {ai.text}
-        </span>
-      </section>
-
-      <button type="button" className="btn btn--danger btn--block profile__signout" onClick={signOut}>
-        Sign out
-      </button>
-
-      <p className="profile__foot">DuoGrow · Become better together</p>
     </div>
   )
 }

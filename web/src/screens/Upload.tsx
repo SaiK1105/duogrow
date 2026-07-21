@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Proof } from '../api/types'
 import { UploadDropzone } from '../components/UploadDropzone'
+import { ScreenState } from '../components/ScreenState'
 import { useToast } from '../components/Toast'
 import { MODULE_META, MODULE_ORDER } from '../lib/format'
 import type { RowKey } from '../lib/format'
@@ -38,13 +39,21 @@ export function Upload() {
   const [analyzing, setAnalyzing] = useState(false)
   const [statusIndex, setStatusIndex] = useState(0)
   const [recent, setRecent] = useState<Proof[]>([])
+  const [loadError, setLoadError] = useState(false)
+
+  const loadRecent = useCallback(async () => {
+    setLoadError(false)
+    try {
+      const res = await api.listProofs()
+      setRecent(res.proofs.slice(0, 6))
+    } catch {
+      setLoadError(true)
+    }
+  }, [])
 
   useEffect(() => {
-    api
-      .listProofs()
-      .then((res) => setRecent(res.proofs.slice(0, 6)))
-      .catch(() => undefined)
-  }, [])
+    void loadRecent()
+  }, [loadRecent])
 
   useEffect(() => {
     if (!previewUrl) return
@@ -128,22 +137,26 @@ export function Upload() {
         Verify with AI
       </button>
 
-      {recent.length > 0 && (
+      {(recent.length > 0 || loadError) && (
         <section className="upload__recent">
           <h2 className="section-title">Recent proofs</h2>
-          <div className="upload__grid">
-            {recent.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className={`upload__thumb upload__thumb--${p.band}`}
-                onClick={() => navigate(`/verify/${p.id}`)}
-              >
-                <img src={p.url} alt={p.summary || 'Proof'} loading="lazy" />
-                <span className="upload__thumb-band" />
-              </button>
-            ))}
-          </div>
+          {loadError ? (
+            <ScreenState title="Recent proofs are unavailable" onRetry={loadRecent} />
+          ) : (
+            <div className="upload__grid">
+              {recent.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`upload__thumb upload__thumb--${p.band}`}
+                  onClick={() => navigate(`/verify/${p.id}`)}
+                >
+                  <img src={p.url} alt={p.summary || 'Proof'} loading="lazy" />
+                  <span className="upload__thumb-band" />
+                </button>
+              ))}
+            </div>
+          )}
         </section>
       )}
 

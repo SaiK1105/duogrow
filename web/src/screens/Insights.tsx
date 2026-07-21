@@ -1,21 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { InsightsResponse, WeeklyReport } from '../api/types'
 import { BulbIcon, TrophyIcon } from '../components/icons'
 import { ProgressRing } from '../components/ProgressRing'
 import { StatRow } from '../components/StatRow'
 import { SubscoreBar } from '../components/SubscoreBar'
+import { ScreenState } from '../components/ScreenState'
 import { formatClock } from '../lib/format'
 import './insights.css'
 
 export function Insights() {
   const [insights, setInsights] = useState<InsightsResponse | null>(null)
   const [report, setReport] = useState<WeeklyReport | null>(null)
+  const [loadError, setLoadError] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoadError(false)
+    const [insightsResult, reportResult] = await Promise.allSettled([api.insights(), api.weeklyReport()])
+
+    if (insightsResult.status === 'fulfilled') setInsights(insightsResult.value)
+    if (reportResult.status === 'fulfilled') setReport(reportResult.value)
+    if (insightsResult.status === 'rejected' || reportResult.status === 'rejected') setLoadError(true)
+  }, [])
 
   useEffect(() => {
-    api.insights().then(setInsights).catch(() => undefined)
-    api.weeklyReport().then(setReport).catch(() => undefined)
-  }, [])
+    void load()
+  }, [load])
 
   const riskHigh = insights ? insights.prediction.riskPercent >= 60 : false
   const riskColor = riskHigh ? 'var(--danger-500)' : 'var(--warn-500)'
@@ -82,6 +92,8 @@ export function Insights() {
             </section>
           </div>
         </>
+      ) : loadError ? (
+        <ScreenState title="Insights are unavailable" onRetry={load} />
       ) : (
         <div className="insights__skeleton" />
       )}

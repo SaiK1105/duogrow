@@ -1,0 +1,17 @@
+.screen-state {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-5) 0;
+}
+
+.screen-state__title {
+  font-size: var(--text-title);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+}
+
+.screen-state__message {
+  color: var(--text-secondary);
+  line-height: var(--leading-snug);
+}

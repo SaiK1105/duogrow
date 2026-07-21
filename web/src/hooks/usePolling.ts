@@ -27,18 +27,22 @@ export function usePolling<T>(
   fetcherRef.current = fetcher
 
   const isMountedRef = useRef(true)
+  const requestIdRef = useRef(0)
 
   const refetch = useCallback(async () => {
+    const requestId = ++requestIdRef.current
+    if (isMountedRef.current) setIsLoading(true)
+
     try {
       const result = await fetcherRef.current()
-      if (!isMountedRef.current) return
+      if (!isMountedRef.current || requestId !== requestIdRef.current) return
       setData(result)
       setError(null)
     } catch (err) {
-      if (!isMountedRef.current) return
+      if (!isMountedRef.current || requestId !== requestIdRef.current) return
       setError(err instanceof Error ? err : new Error('Request failed'))
     } finally {
-      if (isMountedRef.current) setIsLoading(false)
+      if (isMountedRef.current && requestId === requestIdRef.current) setIsLoading(false)
     }
   }, [])
 
