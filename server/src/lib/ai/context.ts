@@ -36,10 +36,7 @@ export interface DuoReflectionContext {
 export interface InsightsExplainContext {
   growthScore: number;
   subscores: Record<(typeof INSIGHT_SUBSCORES)[number], number>;
-  prediction: { behavior: string; riskPercent: number; reason: string };
-  suggestion: string;
-  strength: string;
-  weeklyVerdict: string;
+  riskPercent: number;
 }
 
 export interface PotdTutorContext {
@@ -80,7 +77,7 @@ export function buildDuoReflectionContext(input: DuoReflectionContextInput): Duo
   return { you: buildPersonalAiContext(input.you), partner: buildPersonalAiContext(input.partner) };
 }
 
-/** Minimizes server-derived insight output before it crosses the provider boundary. */
+/** Sends only numeric growth signals to Insight Explain, never a verifier narrative or an identifier. */
 export function buildInsightsExplainContext(input: Record<string, unknown>): InsightsExplainContext {
   const subscores = input.subscores && typeof input.subscores === "object" ? input.subscores as Record<string, unknown> : {};
   const prediction = input.prediction && typeof input.prediction === "object" ? input.prediction as Record<string, unknown> : {};
@@ -89,10 +86,7 @@ export function buildInsightsExplainContext(input: Record<string, unknown>): Ins
     subscores: {
       discipline: finiteNumber(subscores.discipline), mind: finiteNumber(subscores.mind), health: finiteNumber(subscores.health), consistency: finiteNumber(subscores.consistency),
     },
-    prediction: { behavior: boundedText(prediction.behavior, 160), riskPercent: finiteNumber(prediction.riskPercent), reason: boundedText(prediction.reason, 300) },
-    suggestion: boundedText(input.suggestion, 300),
-    strength: boundedText(input.strength, 300),
-    weeklyVerdict: boundedText(input.weeklyVerdict, 400),
+    riskPercent: finiteNumber(prediction.riskPercent),
   };
 }
 

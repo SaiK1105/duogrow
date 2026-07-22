@@ -60,7 +60,10 @@ can request a coaching response. Each preference save atomically updates that
 member's effective Duo Reflection consent; the returned settings state includes
 whether consent is mutual. Duo Reflection runs only after both current members
 enable it. Either partner can revoke it in that same save, which immediately
-prevents new requests even if a later client request is interrupted.
+prevents new requests even if context construction for an already-started
+request is interrupted. The displayed coaching mode is derived from the current
+server provider availability on every settings response, rather than from a
+previously saved mode.
 
 **Delete AI data** deletes the AI subsystem's preferences, duo-consent records,
 and audit metadata. It does not delete the user's DuoGrow account, duo, goals,
@@ -76,22 +79,28 @@ counters, and audit metadata needed for consent and limits.
 
 ## Coaching data boundary and retention
 
-Coaching receives only the server-defined aggregate goals and progress context:
-selected numeric goal targets, allow-listed daily module status/value fields,
-and aggregate weekly progress. Duo Reflection uses the same minimized view for
-each partner without names. The Insight Explain action receives only a
-server-derived allow-list of growth/subscore/prediction/narrative values. POTD
-Tutor receives only the current assignment's bounded title, body, topic, and
-difficulty. The browser cannot supply either contextual payload. Coaching does
-**not** send proof media, uploaded files, raw proof detail, proof IDs, user
-IDs, duo IDs, session tokens, or other session bearers to OpenAI.
+General coaching receives only the server-defined aggregate goals and progress
+context: selected numeric goal targets, allow-listed daily module status/value
+fields, and aggregate weekly progress. Duo Reflection uses the same minimized
+view for each partner without names. Insight Explain receives only numeric
+growth-score, subscore, and risk-percentage signals; verifier narratives are
+never sent to the coaching provider. POTD Tutor receives only the current
+assignment's bounded title, body, topic, and difficulty. The browser cannot
+supply any contextual payload. Coaching does **not** send proof media, uploaded
+files, raw proof detail, proof IDs, user IDs, duo IDs, session tokens, or other
+session bearers to OpenAI.
 
 ## Account credentials
 
 Registration and login require a user-chosen secret of at least eight
-characters. DuoGrow salts and hashes it with Node's `scrypt` before storage and
-uses constant-time comparison for login; plaintext secrets are neither stored
-nor returned. A duplicate display name cannot mint a session, and legacy rows
+characters and no more than 256 UTF-8 bytes. Both endpoints reject an
+oversized advertised JSON body before parsing when `Content-Length` is
+available, then enforce the secret bound before a database lookup or hash. A
+small, bounded in-memory limiter caps repeated eligible attempts per normalized
+name; it stores neither secrets nor credential values. DuoGrow salts and hashes
+the secret with Node's asynchronous `scrypt` before storage and uses
+constant-time comparison for login; plaintext secrets are neither stored nor
+returned. A duplicate display name cannot mint a session, and legacy rows
 without a credential cannot be logged into by name alone. Existing sessions
 remain valid. The deterministic seed's public sign-ins (`Sreya` / `demo-sreya`
 and `Sai` / `demo-sai`) are demo-only credentials, not production accounts.

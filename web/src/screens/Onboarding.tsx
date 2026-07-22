@@ -11,6 +11,12 @@ type Step = 'loading' | 'name' | 'choice' | 'waiting' | 'join' | 'success'
 type IdentityMode = 'register' | 'login'
 
 const POLL_MS = 3000
+const MIN_SECRET_LENGTH = 8
+const MAX_SECRET_BYTES = 256
+
+function secretByteLength(secret: string): number {
+  return new TextEncoder().encode(secret).length
+}
 
 export function Onboarding() {
   const navigate = useNavigate()
@@ -100,6 +106,10 @@ export function Onboarding() {
   const submitName = async () => {
     const trimmed = name.trim()
     if (!trimmed) return
+    if (secret.length < MIN_SECRET_LENGTH || secretByteLength(secret) > MAX_SECRET_BYTES) {
+      setError(`Use at least ${MIN_SECRET_LENGTH} characters and no more than ${MAX_SECRET_BYTES} bytes for your secret.`)
+      return
+    }
     setBusy(true)
     setError(null)
     try {
@@ -197,16 +207,18 @@ export function Onboarding() {
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submitName()}
-            placeholder="Choose a secret (8+ characters)"
-            minLength={8}
+            placeholder="Choose a secret (8+ characters, 256 bytes max)"
+            minLength={MIN_SECRET_LENGTH}
+            maxLength={MAX_SECRET_BYTES}
             autoComplete={identityMode === 'register' ? 'new-password' : 'current-password'}
           />
+          <p className="onb__sub">Use at least {MIN_SECRET_LENGTH} characters and no more than {MAX_SECRET_BYTES} bytes.</p>
           {error && <p className="onb__error">{error}</p>}
           <button
             type="button"
             className="btn btn--primary btn--block"
             onClick={submitName}
-            disabled={busy || !name.trim() || secret.length < 8}
+            disabled={busy || !name.trim() || secret.length < MIN_SECRET_LENGTH || secretByteLength(secret) > MAX_SECRET_BYTES}
           >
             {busy ? 'Setting up…' : identityMode === 'register' ? 'Create account' : 'Sign in'}
           </button>

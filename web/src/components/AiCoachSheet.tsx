@@ -105,7 +105,7 @@ export function AiCoachSheet({ isOpen, settings, onClose, initialAction, client 
           <button className="btn btn--ghost btn--sm" type="button" onClick={onClose} aria-label="Close AI coach">Close</button>
         </div>
         {initialAction && <p className="ai-coach-sheet__selected-action">Selected action: {ACTION_LABELS[initialAction]}</p>}
-        <p id="ai-coach-sheet-description">Coaching receives aggregate progress and goals only. Proof media is never shared.</p>
+        <p id="ai-coach-sheet-description">General coaching uses aggregate progress and goals only. Insight Explain uses numeric insight signals. POTD Tutor uses the current problem title, prompt, topic, and difficulty. Proof media is never shared.</p>
         <p className="ai-coach-sheet__mode">{settings.mode === 'demo' ? 'Demo coaching' : settings.mode === 'live' ? 'Live coaching' : 'AI coaching is off'} · daily budget applies</p>
         <div className="ai-coach-sheet__actions" aria-label="Coaching tools">
           <button className="btn btn--outline" type="button" disabled={pending} onClick={() => void request(client.dailyPlan ?? api.dailyPlan)}>Create daily plan</button>

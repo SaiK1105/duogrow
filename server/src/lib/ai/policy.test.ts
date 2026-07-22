@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { getAiRuntimeConfig } from "./config.js";
+import { getAiRuntimeConfig, getCoachingMode } from "./config.js";
 import { quotaSubject } from "../quotaIdentity.js";
 import { today } from "../dates.js";
 
@@ -71,6 +71,17 @@ test("AI settings report configured feature quotas without reading global enviro
     chat: { remaining: 4, estimatedCostCents: 0 },
     insights_explain: { remaining: 2, estimatedCostCents: 0 },
   });
+});
+
+test("AI settings derive the coaching mode from current provider availability instead of a saved preference", () => {
+  db.prepare("INSERT INTO users (id, name, duo_id, session_token, config_json, created_at) VALUES (?, ?, NULL, ?, ?, ?)")
+    .run("user-mode-transition", "Mode transition", "token-mode-transition", "{}", "2026-01-01");
+  db.prepare("INSERT INTO ai_preferences (user_id, personal_enabled, duo_enabled, policy_version, mode, updated_at) VALUES (?, 1, 0, ?, ?, ?)")
+    .run("user-mode-transition", "v1", "disabled", "2026-01-01");
+
+  assert.equal(getAiSettings("user-mode-transition", "2026-01-01", getAiRuntimeConfig({}), getCoachingMode({})).mode, "demo");
+  assert.equal(getAiSettings("user-mode-transition", "2026-01-01", getAiRuntimeConfig({}), getCoachingMode({ OPENAI_API_KEY: "available-after-redeploy" })).mode, "live");
+  assert.equal(getAiSettings("user-mode-transition", "2026-01-01", getAiRuntimeConfig({}), getCoachingMode({})).mode, "demo");
 });
 
 test("duo reflection settings count a partner's earlier request in the same week", () => {

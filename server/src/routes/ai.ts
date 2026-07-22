@@ -42,8 +42,7 @@ export function createAiRoutes(dependencies: AiRouteDependencies = {}): Hono<App
       return c.json({ error: "invalid settings" }, 400);
     }
     const user = c.get("user");
-    const mode = body.personalEnabled ? (process.env.OPENAI_API_KEY?.trim() ? "live" : "demo") : "disabled";
-    updateAiPreferences({ userId: user.id, duoId: user.duo_id, personalEnabled: body.personalEnabled, duoEnabled: body.duoEnabled, policyVersion: POLICY_VERSION, mode });
+    updateAiPreferences({ userId: user.id, duoId: user.duo_id, personalEnabled: body.personalEnabled, duoEnabled: body.duoEnabled, policyVersion: POLICY_VERSION });
     return c.json(getAiSettings(user.id, today()));
   });
 
@@ -84,6 +83,10 @@ async function generate(c: Context<AppEnv>, feature: AiFeature, userMessage: str
     const reservation = reserveAiRequest({ actorUserId: user.id, duoId, feature, estimatedCostCents: ESTIMATED_COST_CENTS, policyVersion: settings.policyVersion });
     try {
       const context = await buildContext(user, feature);
+      if (!getAiSettings(user.id, today()).personalEnabled) {
+        reservation.rollback();
+        return c.json({ error: "personal AI consent required" }, 403);
+      }
       if (feature === "duo_reflection" && (!user.duo_id || !hasDuoReflectionConsent(user.duo_id))) {
         reservation.rollback();
         return c.json({ error: "mutual duo consent required" }, 403);

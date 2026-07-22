@@ -4,7 +4,7 @@ import { db } from "../../db.js";
 import type { AiFeature, AiMode, AiSettings } from "../../types.js";
 import { quotaSubject } from "../quotaIdentity.js";
 import { today } from "../dates.js";
-import { getAiRuntimeConfig, type AiRuntimeConfig } from "./config.js";
+import { getAiRuntimeConfig, getCoachingMode, type CoachingMode, type AiRuntimeConfig } from "./config.js";
 import { pruneExpiredQuota } from "./quotaRetention.js";
 
 const FEATURES: AiFeature[] = ["daily_plan", "duo_reflection", "potd_tutor", "chat", "insights_explain"];
@@ -34,7 +34,6 @@ export interface AiPreferenceUpdate {
   personalEnabled: boolean;
   duoEnabled: boolean;
   policyVersion: string;
-  mode: AiMode;
 }
 
 /** Saves personal preferences and the member's effective duo consent in one SQLite transaction. */
@@ -43,7 +42,7 @@ export function updateAiPreferences(update: AiPreferenceUpdate): void {
     const now = new Date().toISOString();
     db.prepare(`INSERT INTO ai_preferences (user_id, personal_enabled, duo_enabled, policy_version, mode, updated_at) VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(user_id) DO UPDATE SET personal_enabled = excluded.personal_enabled, duo_enabled = excluded.duo_enabled, policy_version = excluded.policy_version, mode = excluded.mode, updated_at = excluded.updated_at`)
-      .run(update.userId, update.personalEnabled ? 1 : 0, update.duoEnabled ? 1 : 0, update.policyVersion, update.mode, now);
+      .run(update.userId, update.personalEnabled ? 1 : 0, update.duoEnabled ? 1 : 0, update.policyVersion, update.personalEnabled ? getCoachingMode() : "disabled", now);
     if (update.duoId) {
       setDuoConsent(update.userId, update.duoId, update.personalEnabled && update.duoEnabled, update.policyVersion, now);
       recordAiAuditEvent({ eventType: "duo_consent_changed", actorUserId: update.userId, duoId: update.duoId, feature: "duo_reflection", policyVersion: update.policyVersion });
@@ -64,7 +63,7 @@ export function hasDuoReflectionConsent(duoId: string): boolean {
   return members.every((member) => optedIn.some((consent) => consent.user_id === member.id));
 }
 
-export function getAiSettings(userId: string, date: string, config: AiRuntimeConfig = getAiRuntimeConfig()): AiSettings {
+export function getAiSettings(userId: string, date: string, config: AiRuntimeConfig = getAiRuntimeConfig(), coachingMode: CoachingMode = getCoachingMode()): AiSettings {
   if (date === today()) pruneExpiredQuota(date);
   const preference = db.prepare("SELECT personal_enabled, duo_enabled, policy_version, mode FROM ai_preferences WHERE user_id = ?")
     .get(userId) as { personal_enabled: number; duo_enabled: number; policy_version: string; mode: AiMode } | undefined;
@@ -90,7 +89,7 @@ export function getAiSettings(userId: string, date: string, config: AiRuntimeCon
     duoEnabled: preference?.duo_enabled === 1,
     mutualDuoConsent: duoId ? hasDuoReflectionConsent(duoId) : false,
     policyVersion: preference?.policy_version ?? DEFAULT_POLICY_VERSION,
-    mode: preference?.mode ?? "disabled",
+    mode: preference?.personal_enabled === 1 ? coachingMode : "disabled",
     usage,
   };
 }

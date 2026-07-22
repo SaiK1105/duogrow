@@ -22,9 +22,12 @@ the planning fleet on 2026-07-19). Feed nothing else to build agents.
 - Sessions: opaque token in **sessionStorage** (per-tab), sent as `x-session` header.
   Two tabs in one browser = two users. Persisted session bearer values are hashes,
   not usable raw tokens. Registration/login also require a user-chosen secret
-  (minimum eight characters), stored only as salted `scrypt` output and checked
-  with constant-time comparison. Duplicate names cannot mint sessions; legacy
-  users without credentials cannot newly log in by name alone.
+  (minimum eight characters and maximum 256 UTF-8 bytes), stored only as
+  salted asynchronous `scrypt` output and checked with constant-time
+  comparison. Duplicate names cannot mint sessions; legacy users without
+  credentials cannot newly log in by name alone. Registration and login reject
+  oversized advertised JSON before parsing where possible and apply a bounded
+  per-normalized-name attempt limit without retaining secrets.
 - AI: `@anthropic-ai/sdk` server-side behind a `Verifier` seam:
   - `AnthropicVerifier` — real calls when `ANTHROPIC_API_KEY` is set. Structured outputs via
     `output_config.format` (json_schema, `additionalProperties:false`, all keys required).
@@ -40,8 +43,8 @@ the planning fleet on 2026-07-19). Feed nothing else to build agents.
   Personal coaching requires opt-in; Duo Reflection additionally requires the
   consent of both current partners. Coaching receives only server-defined
   aggregate goals/progress context—never proof media/files, raw proof detail,
-  IDs, or session tokens. Insight Explain receives only server-derived
-  allow-listed insight/growth data; POTD Tutor receives only bounded current
+  IDs, or session tokens. Insight Explain receives only numeric growth score,
+  subscores, and risk percentage; POTD Tutor receives only bounded current
   title/body/topic/difficulty. See [AI operations](docs/duogrow-ai.md).
   Server-only controls default to `OPENAI_MODEL=gpt-5-mini`, a 3-cent daily
   per-user reservation cap, a 2500-cent monthly project reservation cap, 3
@@ -131,7 +134,7 @@ a few recent proofs. Reset restores this exactly so rehearsal never poisons the 
 
 ## Demo script (2 min, two tabs)
 
-1. Tab A: Sreya creates the duo → invite code. Tab B: Sai joins → pairing success.
+1. The seeded demo is already paired. In Tab A, choose **I already have an account** and sign in as **Sreya** / **demo-sreya**. In Tab B, do the same with **Sai** / **demo-sai**; both land on the shared dashboard.
 2. Both see the shared Today dashboard (seeded history alive).
 3. Sai uploads a workout screenshot → Analyzing… → **Verified ✓ 92%** + evidence + coach line →
    auto-applied; Tab A updates within 3s; duo streak 6→7.

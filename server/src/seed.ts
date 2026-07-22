@@ -52,8 +52,8 @@ const insertUser = db.prepare(
 );
 const sreyaTokenHash = hashSessionToken(SREYA_TOKEN);
 const saiTokenHash = hashSessionToken(SAI_TOKEN);
-const sreyaCredential = hashCredential("demo-sreya");
-const saiCredential = hashCredential("demo-sai");
+const sreyaCredential = await hashCredential("demo-sreya");
+const saiCredential = await hashCredential("demo-sai");
 insertUser.run(SREYA_ID, "Sreya", "sreya", DUO_ID, sreyaTokenHash, sreyaTokenHash, sreyaCredential.salt, sreyaCredential.hash, JSON.stringify(DEFAULT_USER_CONFIG), now);
 insertUser.run(SAI_ID, "Sai", "sai", DUO_ID, saiTokenHash, saiTokenHash, saiCredential.salt, saiCredential.hash, JSON.stringify(DEFAULT_USER_CONFIG), now);
 

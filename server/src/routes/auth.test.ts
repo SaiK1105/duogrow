@@ -15,10 +15,10 @@ const [{ db }, { authRoutes }] = await Promise.all([
 const app = new Hono();
 app.route("/api/auth", authRoutes);
 
-async function auth(path: "/register" | "/login", payload: Record<string, unknown>): Promise<Response> {
+async function auth(path: "/register" | "/login", payload: Record<string, unknown>, extraHeaders: Record<string, string> = {}): Promise<Response> {
   return app.request(`http://localhost/api/auth${path}`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...extraHeaders },
     body: JSON.stringify(payload),
   });
 }
@@ -77,4 +77,25 @@ test("legacy users without a credential cannot log in by name alone", async () =
     .run("legacy-user", "Legacy", "legacy-token", "legacy-token", "{}", new Date().toISOString());
 
   assert.equal((await auth("/login", { name: "Legacy", secret: "anything-long-enough" })).status, 401);
+});
+
+test("credential endpoints reject oversized secret bytes and advertised JSON before database or scrypt work", async () => {
+  const oversizedSecret = "é".repeat(129);
+  const registration = await auth("/register", { name: "Too long", secret: oversizedSecret });
+  assert.equal(registration.status, 400);
+  assert.equal((db.prepare("SELECT count(*) AS count FROM users WHERE name = ?").get("Too long") as { count: number }).count, 0);
+
+  assert.equal((await auth("/register", { name: "Valid size", secret: "valid-size-secret" })).status, 200);
+  assert.equal((await auth("/login", { name: "Valid size", secret: oversizedSecret })).status, 400);
+  const oversizedPayload = await auth("/register", { name: "Advertised body", secret: "valid-size-secret" }, { "content-length": "1025" });
+  assert.equal(oversizedPayload.status, 413);
+  assert.equal((db.prepare("SELECT count(*) AS count FROM users WHERE name = ?").get("Advertised body") as { count: number }).count, 0);
+});
+
+test("repeated failed credential attempts are bounded per normalized name", async () => {
+  assert.equal((await auth("/register", { name: "Rate limited", secret: "correct-secret" })).status, 200);
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    assert.equal((await auth("/login", { name: "RATE LIMITED", secret: `wrong-secret-${attempt}` })).status, 401);
+  }
+  assert.equal((await auth("/login", { name: "rate limited", secret: "wrong-secret-final" })).status, 429);
 });

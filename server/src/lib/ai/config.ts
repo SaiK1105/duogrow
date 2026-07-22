@@ -9,6 +9,7 @@ export interface AiRuntimeConfig {
 }
 
 export type AiEnvironment = Readonly<Record<string, string | undefined>>;
+export type CoachingMode = "live" | "demo";
 
 export const DEFAULT_AI_RUNTIME_CONFIG: AiRuntimeConfig = Object.freeze({
   openAiModel: "gpt-5-mini",
@@ -37,6 +38,11 @@ export function getAiRuntimeConfig(environment: AiEnvironment = process.env): Ai
     chatCallsPerUser: readPositiveInteger(environment.AI_CHAT_CALLS_PER_USER, DEFAULT_AI_RUNTIME_CONFIG.chatCallsPerUser),
     reflectionsPerDuoPerWeek: readPositiveInteger(environment.AI_REFLECTIONS_PER_DUO_PER_WEEK, DEFAULT_AI_RUNTIME_CONFIG.reflectionsPerDuoPerWeek),
   });
+}
+
+/** Returns only whether the current process can use its configured coaching provider. */
+export function getCoachingMode(environment: AiEnvironment = process.env): CoachingMode {
+  return environment.OPENAI_API_KEY?.trim() ? "live" : "demo";
 }
 
 function readModel(value: string | undefined): string {

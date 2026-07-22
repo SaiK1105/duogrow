@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildDuoReflectionContext, buildPersonalAiContext } from "./context.js";
+import { buildDuoReflectionContext, buildInsightsExplainContext, buildPersonalAiContext } from "./context.js";
 
 test("personal AI context copies only explicitly approved fields", () => {
   const context = buildPersonalAiContext({
@@ -37,28 +37,27 @@ test("duo reflection applies the personal minimizer to both partners", () => {
   assert.doesNotMatch(JSON.stringify(context), /Sreya|Sai|proof|raw|partner\.jpg|partner-id|you-id|55|66/i);
 });
 
-test("insight explanations and POTD tutoring each accept only their dedicated server-derived allow-list", async () => {
-  const contextModule = await import("./context.js") as typeof import("./context.js") & {
-    buildInsightsExplainContext?: (value: Record<string, unknown>) => unknown;
-    buildPotdTutorContext?: (value: Record<string, unknown>) => unknown;
-  };
-  assert.equal(typeof contextModule.buildInsightsExplainContext, "function");
-  assert.equal(typeof contextModule.buildPotdTutorContext, "function");
-
-  const insight = contextModule.buildInsightsExplainContext!({
+test("Insight Explain sends only numeric signals even when its narrative source contains names", async () => {
+  const insight = buildInsightsExplainContext({
     growthScore: 82,
     subscores: { discipline: 80, mind: 82, health: 70, consistency: 90, private: 999 },
-    prediction: { behavior: "miss study", riskPercent: 40, reason: "two late starts", forUser: "Ada", proof_id: "proof-1" },
-    suggestion: "start early", strength: "consistent wakeups", weeklyVerdict: "solid week",
+    prediction: { behavior: "remind Sai to start", riskPercent: 40, reason: "Sreya missed two late starts", forUser: "Ada", proof_id: "proof-1" },
+    suggestion: "Ask Sai to start early", strength: "Sreya has consistent wakeups", weeklyVerdict: "Sreya and Sai had a solid week",
     proof: { file_path: "/private.jpg" }, userId: "user-1",
   });
   assert.deepEqual(insight, {
     growthScore: 82,
     subscores: { discipline: 80, mind: 82, health: 70, consistency: 90 },
-    prediction: { behavior: "miss study", riskPercent: 40, reason: "two late starts" },
-    suggestion: "start early", strength: "consistent wakeups", weeklyVerdict: "solid week",
+    riskPercent: 40,
   });
-  assert.doesNotMatch(JSON.stringify(insight), /Ada|proof|private|user-1|999/i);
+  assert.doesNotMatch(JSON.stringify(insight), /Ada|Sai|Sreya|proof|private|user-1|999/i);
+});
+
+test("POTD tutoring accepts only its dedicated server-derived allow-list", async () => {
+  const contextModule = await import("./context.js") as typeof import("./context.js") & {
+    buildPotdTutorContext?: (value: Record<string, unknown>) => unknown;
+  };
+  assert.equal(typeof contextModule.buildPotdTutorContext, "function");
 
   const tutor = contextModule.buildPotdTutorContext!({
     title: "Two sum", body: "Find the pair.", topic: "Arrays", difficulty: "easy", id: "q-1", source: "Private bank", proof_id: "proof-2", answer: "secret",

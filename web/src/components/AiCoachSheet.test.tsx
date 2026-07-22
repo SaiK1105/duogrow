@@ -19,12 +19,14 @@ const settings = {
 }
 
 describe('AiCoachSheet', () => {
-  it('labels the dialog and explains that demo coaching uses aggregate-only context', () => {
+  it('labels the dialog and accurately discloses each coaching context boundary', () => {
     render(<AiCoachSheet isOpen settings={settings} onClose={vi.fn()} />)
 
     expect(screen.getByRole('dialog')).toHaveAccessibleName('DuoGrow AI coach')
     expect(screen.getByText(/Demo coaching/)).toBeVisible()
     expect(screen.getByText(/aggregate progress and goals only/i)).toBeVisible()
+    expect(screen.getByText(/Insight Explain uses numeric insight signals/i)).toBeVisible()
+    expect(screen.getByText(/POTD Tutor uses the current problem title, prompt, topic, and difficulty/i)).toBeVisible()
     expect(screen.getByText(/proof media is never shared/i)).toBeVisible()
   })
 

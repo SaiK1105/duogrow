@@ -90,6 +90,30 @@ test("a consent revocation while reflection context is pending prevents provider
   assert.equal(providerCalls, 0);
 });
 
+test("a personal consent revocation while any generation context is pending prevents provider dispatch and releases the reservation", async () => {
+  insertUser("user-personal-race", "token-personal-race", null);
+  enablePersonal("user-personal-race");
+  let startContext: (() => void) | undefined;
+  let releaseContext: ((value: ReturnType<typeof import("../lib/ai/context.js").buildPersonalAiContext>) => void) | undefined;
+  const contextStarted = new Promise<void>((resolve) => { startContext = resolve; });
+  const pendingContext = new Promise<ReturnType<typeof import("../lib/ai/context.js").buildPersonalAiContext>>((resolve) => { releaseContext = resolve; });
+  let providerCalls = 0;
+  const raceApp = new Hono();
+  raceApp.route("/api/ai", createAiRoutes({
+    buildContext: () => { startContext?.(); return pendingContext; },
+    provider: { generate: async () => { providerCalls += 1; return { text: "must not run", mode: "demo" }; } },
+  }));
+  const before = db.prepare("SELECT COALESCE(SUM(request_count), 0) AS count FROM ai_quota_daily WHERE subject_hash = ?").get(quotaSubject("user-personal-race")) as { count: number };
+  const plan = raceApp.request("http://localhost/api/ai/daily-plan", { method: "POST", headers: headers("token-personal-race") });
+  await contextStarted;
+  assert.equal((await request("/settings", "token-personal-race", "PUT", { personalEnabled: false, duoEnabled: false })).status, 200);
+  releaseContext?.({ goals: {}, today: [], week: {} });
+
+  assert.equal((await plan).status, 403);
+  assert.equal(providerCalls, 0);
+  assert.equal((db.prepare("SELECT COALESCE(SUM(request_count), 0) AS count FROM ai_quota_daily WHERE subject_hash = ?").get(quotaSubject("user-personal-race")) as { count: number }).count, before.count);
+});
+
 test("daily plan returns a labelled demo response", async () => {
   insertUser("user-demo", "token-demo");
   enablePersonal("user-demo");
@@ -137,7 +161,7 @@ test("contextual coaching routes send only server-derived allow-listed insight a
   assert.equal((await contextualApp.request("http://localhost/api/ai/insights-explain", { method: "POST", headers: headers("token-contextual"), body: JSON.stringify({ browserSupplied: "never trusted" }) })).status, 200);
 
   assert.deepEqual(inputs[0], { feature: "potd_tutor", context: { assignment: { title: "Two Sum", body: "Find the pair.", topic: "Arrays", difficulty: "easy" } } });
-  assert.deepEqual(Object.keys(inputs[1]?.context as Record<string, unknown>).sort(), ["growthScore", "prediction", "strength", "subscores", "suggestion", "weeklyVerdict"]);
+  assert.deepEqual(Object.keys(inputs[1]?.context as Record<string, unknown>).sort(), ["growthScore", "riskPercent", "subscores"]);
   assert.doesNotMatch(JSON.stringify(inputs), /private source|private answer|proof-secret|assignment-contextual|question-contextual|browserSupplied/i);
 });
 
