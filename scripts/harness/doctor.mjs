@@ -14,7 +14,7 @@ const expectedFiles = [
   ".agent-state/README.md",
 ];
 const expectedScripts = {
-  test: "npm --prefix web run test",
+  test: "npm run test:server && npm --prefix web run test",
   lint: "npm --prefix web run lint",
   verify: "node scripts/harness/verify.mjs",
   "verify:ci": "npm run verify",
