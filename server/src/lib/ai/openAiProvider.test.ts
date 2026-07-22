@@ -21,7 +21,10 @@ test("OpenAI provider sends a stateless text-only bounded request", async () => 
     apiKey: secret,
     fetchImpl: async (url, init) => {
       captured = { url: String(url), init };
-      return response({ output_text: "Choose a 25-minute study block now.", usage: { input_tokens: 12, output_tokens: 8 } });
+      return response({
+        output: [{ type: "message", content: [{ type: "output_text", text: "Choose a 25-minute study block now." }] }],
+        usage: { input_tokens: 12, output_tokens: 8 },
+      });
     },
   });
 
@@ -54,7 +57,8 @@ test("OpenAI provider falls back deterministically when key is absent or live ou
 
   const failures: Array<[string, typeof fetch]> = [
     ["malformed JSON", async () => new Response("{", { status: 200 })],
-    ["empty output", async () => response({ output_text: "   " }, 200)],
+    ["empty output text", async () => response({ output: [{ type: "message", content: [{ type: "output_text", text: "   " }] }] }, 200)],
+    ["missing or unsupported output content", async () => response({ output: [{ type: "message", content: [{ type: "refusal", refusal: "No" }] }] }, 200)],
     ["non-OK response", async () => response({ error: "nope" }, 500)],
     ["timeout abort", async () => { throw new DOMException("Timed out", "AbortError"); }],
   ];

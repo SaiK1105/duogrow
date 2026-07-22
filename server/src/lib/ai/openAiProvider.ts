@@ -8,7 +8,7 @@ const MAX_OUTPUT_TOKENS = 700;
 const MAX_OUTPUT_CHARS = 4_000;
 
 interface OpenAiResponse {
-  output_text?: unknown;
+  output?: unknown;
   usage?: { input_tokens?: unknown; output_tokens?: unknown };
 }
 
@@ -66,8 +66,7 @@ export class OpenAiProvider implements AiProvider {
 
   private async extract(response: Response, input: AiGenerationInput): Promise<AiGenerationResult> {
     const body = await response.json() as OpenAiResponse;
-    if (typeof body.output_text !== "string") return this.fallback.generate(input);
-    const text = body.output_text.trim().slice(0, MAX_OUTPUT_CHARS);
+    const text = extractOutputText(body.output);
     if (!text) return this.fallback.generate(input);
     return {
       text,
@@ -76,6 +75,28 @@ export class OpenAiProvider implements AiProvider {
       outputTokens: numericUsage(body.usage?.output_tokens),
     };
   }
+}
+
+function extractOutputText(output: unknown): string | null {
+  if (!Array.isArray(output)) return null;
+
+  let text = "";
+  for (const item of output) {
+    if (!isRecord(item) || !Array.isArray(item.content)) continue;
+    for (const content of item.content) {
+      if (!isRecord(content) || content.type !== "output_text" || typeof content.text !== "string") continue;
+      const next = content.text.trim();
+      if (!next) continue;
+      const separator = text ? "\n" : "";
+      text += `${separator}${next}`;
+      if (text.length >= MAX_OUTPUT_CHARS) return text.slice(0, MAX_OUTPUT_CHARS);
+    }
+  }
+  return text || null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function numericUsage(value: unknown): number | undefined {
