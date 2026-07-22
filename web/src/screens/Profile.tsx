@@ -124,7 +124,7 @@ export function Profile() {
 
           <section aria-labelledby="ai-privacy-section-title">
             <h2 id="ai-privacy-section-title" className="section-title">AI &amp; Privacy</h2>
-            {aiSettings ? <><AiPrivacyPanel settings={aiSettings} onSettingsChange={setAiSettings} /><p>Partner consent required until mutual consent becomes active.</p></> : <p>{aiSettingsError ? 'AI privacy controls are unavailable.' : 'Loading AI privacy controls…'}</p>}
+            {aiSettings ? <AiPrivacyPanel settings={aiSettings} onSettingsChange={setAiSettings} /> : <p>{aiSettingsError ? 'AI privacy controls are unavailable.' : 'Loading AI privacy controls…'}</p>}
           </section>
 
           <button type="button" className="btn btn--danger btn--block profile__signout" onClick={signOut}>

@@ -12,6 +12,18 @@ const settings = { personalEnabled: true, duoEnabled: false, policyVersion: 'v1'
 afterEach(() => vi.clearAllMocks())
 
 describe('Profile AI privacy', () => {
+  it('keeps profile actions available when AI privacy settings fail to load', async () => {
+    mockedApi.me.mockResolvedValue({ user: { id: 'me', name: 'Sai', duoId: 'duo' }, duo: { id: 'duo', name: 'Duo', inviteCode: 'JOIN', members: [{ id: 'me', name: 'Sai' }, { id: 'partner', name: 'Sreya' }] } })
+    mockedApi.today.mockResolvedValue({ streak: 4 } as Awaited<ReturnType<typeof api.today>>)
+    mockedApi.health.mockResolvedValue({ demo: true })
+    mockedApi.aiSettings.mockRejectedValue(new Error('Unavailable'))
+
+    render(<MemoryRouter><ToastProvider><Profile /></ToastProvider></MemoryRouter>)
+
+    expect(await screen.findByText('AI privacy controls are unavailable.')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeEnabled()
+  })
+
   it('shows AI & Privacy and gates Duo Reflection until mutual consent is active', async () => {
     mockedApi.me.mockResolvedValue({ user: { id: 'me', name: 'Sai', duoId: 'duo' }, duo: { id: 'duo', name: 'Duo', inviteCode: 'JOIN', members: [{ id: 'me', name: 'Sai' }, { id: 'partner', name: 'Sreya' }] } })
     mockedApi.today.mockResolvedValue({ streak: 4 } as Awaited<ReturnType<typeof api.today>>)
@@ -21,6 +33,6 @@ describe('Profile AI privacy', () => {
     render(<MemoryRouter><ToastProvider><Profile /></ToastProvider></MemoryRouter>)
 
     expect(await screen.findByRole('heading', { name: 'AI & Privacy' })).toBeVisible()
-    expect(screen.getByText(/Partner consent required/)).toBeVisible()
+    expect(screen.getByText(/Duo Reflection runs only when both partners consent/)).toBeVisible()
   })
 })

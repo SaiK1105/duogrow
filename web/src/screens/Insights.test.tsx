@@ -12,6 +12,17 @@ const settings = { personalEnabled: true, duoEnabled: false, policyVersion: 'v1'
 afterEach(() => vi.clearAllMocks())
 
 describe('Insights AI launchers', () => {
+  it('keeps insight content visible when AI settings are unavailable', async () => {
+    mockedApi.insights.mockResolvedValue({ growthScore: 50, subscores: { discipline: 50, mind: 50, health: 50, consistency: 50 }, prediction: { forUser: 'You', behavior: 'Study', riskPercent: 20, reason: 'On track' }, suggestion: 'Keep going', strength: 'Consistency', weeklyVerdict: 'Good' })
+    mockedApi.weeklyReport.mockResolvedValue({ studyTime: 60, workouts: { done: 1, target: 2 }, goals: { done: 1, target: 2 }, consistency: 50, verdict: 'Good' })
+    mockedApi.aiSettings.mockRejectedValue(new Error('Unavailable'))
+
+    render(<Insights />)
+
+    expect(await screen.findByText('AI coach unavailable')).toBeVisible()
+    expect(screen.getByText('Keep going')).toBeVisible()
+  })
+
   it.each(['Explain this', 'Make a plan'])('opens DuoGrow AI coach from %s', async (label) => {
     const user = userEvent.setup()
     mockedApi.insights.mockResolvedValue({ growthScore: 50, subscores: { discipline: 50, mind: 50, health: 50, consistency: 50 }, prediction: { forUser: 'You', behavior: 'Study', riskPercent: 20, reason: 'On track' }, suggestion: 'Keep going', strength: 'Consistency', weeklyVerdict: 'Good' })

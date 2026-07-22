@@ -23,3 +23,14 @@ it('opens DuoGrow AI coach from the POTD tutor launcher', async () => {
 
   expect(screen.getByRole('dialog', { name: 'DuoGrow AI coach' })).toBeVisible()
 })
+
+it('keeps the POTD available when AI settings are unavailable', async () => {
+  mockedApi.potdToday.mockResolvedValue({ yours: { id: 'assignment', status: 'open', question: { id: 'question', title: 'Two Sum', body: 'Find the pair.', topic: 'Arrays', difficulty: 'easy', source: 'Local' } }, partners: null })
+  mockedApi.potdBank.mockResolvedValue({ questions: [] })
+  mockedApi.aiSettings.mockRejectedValue(new Error('Unavailable'))
+
+  render(<MemoryRouter><ToastProvider><Potd /></ToastProvider></MemoryRouter>)
+
+  expect(await screen.findByText('AI coach unavailable')).toBeVisible()
+  expect(screen.getByRole('heading', { name: 'Two Sum' })).toBeVisible()
+})
