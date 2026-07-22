@@ -76,17 +76,21 @@ demo AI that never fails on stage, and a one-command production deploy.
 
 | Area | Current state | To productionize |
 |---|---|---|
-| Auth | Name-only, session-token per tab (demo-grade) | Real accounts (email/OAuth), proper session security |
+| Auth | Name-only opaque bearer per tab; only a hash is persisted (still demo-grade) | Real accounts (email/OAuth), rotation/expiry and production identity controls |
 | Partner sync | 3-second polling | WebSockets / SSE for instant push |
 | AI verification | Demo verifier (deterministic) | Set `ANTHROPIC_API_KEY` → live Claude vision (already wired) |
+| AI coaching | Personal opt-in, mutual Duo Reflection consent, deterministic no-key demo fallback | Operate the server-only OpenAI integration with provider alerts and account retention controls |
 | Data durability | SQLite on ephemeral disk (reseeds on restart) | Managed Postgres, or Render paid disk for persistence |
-| Proof images | Stored full-size on disk | Thumbnails + compression + object storage (S3/R2) |
+| Proof images | Stored full-size on disk; served only by an authenticated duo-authorized API route | Thumbnails + compression + object storage (S3/R2) |
 | Scale | Single instance, single duo demo | Multi-duo is supported by the schema; needs load testing |
 | Mobile | Responsive web (phone-framed) | PWA install / React Native wrapper |
 | Tests | Typecheck + manual smoke test | Unit (Vitest) + E2E (Playwright) |
 
-The AI seam is the strongest "next step" to show ambition: flipping to live
-Claude vision is a single env var — the `AnthropicVerifier` is already written.
+The existing verifier seam remains a strong next step: flipping to live Claude
+vision is a single env var — the `AnthropicVerifier` is already written. The
+new coaching product is separate: it uses server-only OpenAI text calls and
+never receives proof media. Its consent, privacy, and operating contract is in
+[`docs/duogrow-ai.md`](docs/duogrow-ai.md).
 
 ---
 
@@ -97,11 +101,11 @@ DUOGROW/
 ├── web/            React SPA (Vite). Screens in web/src/screens/, API client in web/src/api/
 ├── server/         Hono API. Routes in server/src/routes/, logic in server/src/lib/
 │   └── src/
-│       ├── index.ts        server entry — mounts /api routes, serves /uploads, (prod) serves web/dist
-│       ├── db.ts           opens SQLite at ~/.duogrow, creates the 8-table schema
+│       ├── index.ts        server entry — mounts /api routes and (prod) serves web/dist
+│       ├── db.ts           opens SQLite at ~/.duogrow, creates the schema and safe migrations
 │       ├── seed.ts         wipes + seeds the pristine demo (run by npm run seed/reset)
-│       ├── routes/         auth, duo, today, modules, proofs, potd, cheers, insights, report, health
-│       └── lib/            verifier seam, applyProof, streaks, weeklyStats (growth score), potd, ...
+│       ├── routes/         auth, duo, today, modules, proofs, potd, cheers, insights, ai, report, health
+│       └── lib/            verifier seam, ai coaching, applyProof, streaks, weeklyStats (growth score), potd, ...
 ├── scripts/        wait-for-api.mjs — dev helper (starts Vite only after the API is up)
 ├── render.yaml     Render blueprint (one-click deploy config)
 ├── SPEC.md         the single source-of-truth spec
@@ -122,6 +126,17 @@ no CORS); in dev, Vite serves the SPA on :5173 and proxies `/api` to :8787.
 - Only the **first high-band verified proof of the day** advances the duo streak
   (`server/src/lib/streaks.ts`).
 
+**AI coaching is deliberately separate:** it is opt-in, uses only minimized
+aggregate progress/goals context, and returns deterministic labelled demo
+content if no server-side `OPENAI_API_KEY` is configured. It never receives a
+proof file. Duo Reflection needs active consent from both current partners, and
+either may revoke it. See [`docs/duogrow-ai.md`](docs/duogrow-ai.md) before
+changing its privacy boundary.
+
+**Proof files are no longer public:** the old `/uploads` static path is absent.
+The client uses authenticated `GET /api/proofs/:id/file`, which also checks that
+the requester belongs to the proof's duo. Persisted session bearers are hashes.
+
 **The demo seed is deterministic** — today's POTD ("Two Sum") is *derived* by the
 same `fnv1a(duoId:date)` hash the API uses, not hardcoded, so `npm run reset`
 always reproduces the exact demo state.
@@ -138,10 +153,13 @@ The app is a single Render **web service** defined by [render.yaml](render.yaml)
   reseed without a code change).
 - **Logs:** the service's **Logs** tab (live). Look for
   `DuoGrow listening on http://localhost:<port> (AI mode: demo)`.
-- **Env vars:** the service's **Environment** tab. To go **live AI**, add
-  `ANTHROPIC_API_KEY = sk-ant-...` and redeploy — the health endpoint will then
-  report `"mode":"live"`. To force demo again without removing the key, add
-  `DEMO_FAKE_AI = 1`.
+- **Env vars:** the service's **Environment** tab. To go **live proof
+  verification**, add `ANTHROPIC_API_KEY` and redeploy — the health endpoint
+  will then report `"mode":"live"`. To force the proof verifier back to demo
+  without removing its key, add `DEMO_FAKE_AI = 1`. Add `OPENAI_API_KEY` only
+  as a server-side secret to enable live coaching; no browser code receives it.
+  See [`docs/duogrow-ai.md`](docs/duogrow-ai.md) for consent, retention, and
+  provider-spend guidance.
 - **Cold start:** free tier sleeps after ~15 min idle (~50s to wake). See the
   pre-pitch checklist.
 - **Data:** free tier disk is ephemeral — every restart reseeds the pristine
@@ -252,4 +270,7 @@ coverage, not passing tests.
   pristine Sreya & Sai state and the two-tab demo must still work.
 - Don't weaken the gotchas in `AGENTS.md` (the `API_PORT`/`PORT` split, the
   production-only dynamic static-serving import).
+- Keep proof bytes behind `GET /api/proofs/:id/file`; do not restore a public
+  `/uploads` path. Keep proof verification (`ANTHROPIC_API_KEY`) distinct from
+  text-only coaching (`OPENAI_API_KEY`), and never put either key in the client.
 - Never commit secrets. `.env` stays local; Render's dashboard holds real keys.

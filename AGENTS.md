@@ -22,8 +22,13 @@ growth score update live for both partners. Tagline: *Become better together.*
 - **Sync** — no websockets; the client polls every 3s for partner updates.
 - **Sessions** — per browser tab via `sessionStorage` (`duogrow.session`), sent
   as the `x-session` header. Two tabs of the same browser = the two partners.
+  Session bearers are persisted as hashes, never as usable raw values.
 - **Data** — SQLite + uploads under `~/.duogrow` (override with `DATA_DIR`).
   Kept **outside OneDrive** on the dev machine to avoid WAL corruption under sync.
+- **AI products** — proof verification is the existing Anthropic `Verifier`
+  seam. Separate DuoGrow AI coaching makes bounded, text-only OpenAI Responses
+  calls server-side and never receives proof media. Read
+  [`docs/duogrow-ai.md`](docs/duogrow-ai.md) before changing either boundary.
 
 ## Commands (run from repo root)
 
@@ -97,6 +102,15 @@ proofs, verifier behavior, or schema.
   `ANTHROPIC_API_KEY` to enable live Claude vision (`AnthropicVerifier`). Set
   `DEMO_FAKE_AI=1` to force demo even with a key. The seam is
   `server/src/lib/verifier.ts` (`getVerifier()` / `isLiveMode()`).
+- **Coaching is separate from proof verification.** `OPENAI_API_KEY` stays on
+  the server; its `gpt-5-mini` Responses calls use text-only minimized context
+  and `store: false`, with a deterministic labelled demo fallback. Personal
+  coaching is opt-in; Duo Reflection needs both current partners' consent.
+  Server-only `OPENAI_MODEL` and `AI_*` budget/call caps have conservative
+  defaults; see [`docs/duogrow-ai.md`](docs/duogrow-ai.md) before changing them.
+- **Proof bytes are private.** Do not restore a public `/uploads` route.
+  Clients fetch proof media only through authenticated,
+  duo-authorized `GET /api/proofs/:id/file`.
 - **`npm start` needs `web/dist`** — run `npm run build` first, or the server
   boots API-only and warns about the missing SPA.
 - **Never commit `.env`** (it's gitignored). Secrets go in the host's env-var UI.
@@ -104,6 +118,8 @@ proofs, verifier behavior, or schema.
 ## Where things live
 
 - Verifier seam: `server/src/lib/verifier.ts`, `demoVerifier.ts`, `anthropicVerifier.ts`
+- Coaching seam: `server/src/lib/ai/`, `server/src/routes/ai.ts`; operations and
+  privacy contract: [`docs/duogrow-ai.md`](docs/duogrow-ai.md)
 - Proof upload + apply: `server/src/routes/proofs.ts`, `server/src/lib/applyProof.ts`
 - Streak rule (first HIGH-band proof/day advances it): `server/src/lib/streaks.ts`
 - Growth score: `server/src/lib/weeklyStats.ts`
