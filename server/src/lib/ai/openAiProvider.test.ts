@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { getAiRuntimeConfig } from "./config.js";
 import { OpenAiProvider } from "./openAiProvider.js";
 import type { AiGenerationInput } from "./provider.js";
 
@@ -49,6 +50,22 @@ test("OpenAI provider sends a stateless text-only bounded request", async () => 
   assert.match(messages[0].content[0].text, /read-only coaching/i);
   assert.match(messages[1].content[0].text, /Help me focus today/);
   assert.doesNotMatch(JSON.stringify({ result, body }), new RegExp(secret));
+});
+
+test("OpenAI provider propagates the validated configured model", async () => {
+  let model: unknown;
+  const provider = new OpenAiProvider({
+    apiKey: "sk-valid",
+    config: getAiRuntimeConfig({ OPENAI_MODEL: "gpt-5.1-mini" }),
+    fetchImpl: async (_url, init) => {
+      model = (JSON.parse(String(init?.body)) as { model?: unknown }).model;
+      return response({ output: [{ type: "message", content: [{ type: "output_text", text: "Start with one task." }] }] });
+    },
+  });
+
+  await provider.generate(input);
+
+  assert.equal(model, "gpt-5.1-mini");
 });
 
 test("OpenAI provider falls back deterministically when key is absent or live output is unusable", async (t) => {

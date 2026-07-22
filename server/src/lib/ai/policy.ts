@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { db } from "../../db.js";
 import type { AiFeature, AiMode, AiSettings } from "../../types.js";
+import { getAiRuntimeConfig, type AiRuntimeConfig } from "./config.js";
 
 const FEATURES: AiFeature[] = ["daily_plan", "duo_reflection", "potd_tutor", "chat"];
 const DEFAULT_POLICY_VERSION = "1";
@@ -32,13 +33,23 @@ export function hasDuoReflectionConsent(duoId: string): boolean {
   return members.every((member) => optedIn.some((consent) => consent.user_id === member.id));
 }
 
-export function getAiSettings(userId: string, date: string): AiSettings {
+export function getAiSettings(userId: string, date: string, config: AiRuntimeConfig = getAiRuntimeConfig()): AiSettings {
   const preference = db.prepare("SELECT personal_enabled, duo_enabled, policy_version, mode FROM ai_preferences WHERE user_id = ?")
     .get(userId) as { personal_enabled: number; duo_enabled: number; policy_version: string; mode: AiMode } | undefined;
   const counts = db.prepare("SELECT feature, request_count FROM ai_usage_daily WHERE user_id = ? AND date = ?").all(userId, date) as Array<{ feature: AiFeature; request_count: number }>;
-  const limits: Record<AiFeature, number> = { daily_plan: 3, duo_reflection: 1, potd_tutor: 5, chat: 10 };
+  const duoId = (db.prepare("SELECT duo_id FROM users WHERE id = ?").get(userId) as { duo_id: string | null } | undefined)?.duo_id;
+  const reflectionUsage = duoId
+    ? (db.prepare("SELECT COALESCE(SUM(request_count), 0) AS total FROM ai_usage_daily WHERE duo_id = ? AND feature = ? AND date BETWEEN ? AND ?")
+      .get(duoId, "duo_reflection", weekStart(date), weekEnd(date)) as { total: number }).total
+    : 0;
+  const limits: Record<AiFeature, number> = {
+    daily_plan: config.dailyCallsPerUser,
+    duo_reflection: config.reflectionsPerDuoPerWeek,
+    potd_tutor: config.tutorCallsPerUser,
+    chat: config.chatCallsPerUser,
+  };
   const usage = Object.fromEntries(FEATURES.map((feature) => {
-    const used = counts.find((entry) => entry.feature === feature)?.request_count ?? 0;
+    const used = feature === "duo_reflection" ? reflectionUsage : counts.find((entry) => entry.feature === feature)?.request_count ?? 0;
     return [feature, { remaining: Math.max(0, limits[feature] - used), estimatedCostCents: 0 }];
   })) as AiSettings["usage"];
   return {
@@ -48,6 +59,19 @@ export function getAiSettings(userId: string, date: string): AiSettings {
     mode: preference?.mode ?? "disabled",
     usage,
   };
+}
+
+function weekStart(date: string): string {
+  const value = new Date(`${date}T00:00:00.000Z`);
+  const day = (value.getUTCDay() + 6) % 7;
+  value.setUTCDate(value.getUTCDate() - day);
+  return value.toISOString().slice(0, 10);
+}
+
+function weekEnd(date: string): string {
+  const value = new Date(`${weekStart(date)}T00:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() + 6);
+  return value.toISOString().slice(0, 10);
 }
 
 export function recordAiAuditEvent(event: Omit<import("./types.js").AiAuditEvent, "createdAt">): void {

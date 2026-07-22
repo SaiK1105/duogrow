@@ -1,12 +1,8 @@
 import { db } from "../../db.js";
 import type { AiFeature } from "../../types.js";
 import { today } from "../dates.js";
+import { getAiRuntimeConfig, type AiRuntimeConfig } from "./config.js";
 import { recordAiAuditEvent } from "./policy.js";
-
-export const AI_USER_DAILY_BUDGET_CENTS = 3;
-export const AI_PROJECT_MONTHLY_BUDGET_CENTS = 2500;
-
-const DAILY_LIMITS: Record<Exclude<AiFeature, "duo_reflection">, number> = { daily_plan: 3, potd_tutor: 5, chat: 10 };
 
 export class AiLimitError extends Error {
   public constructor(public readonly limit: "feature" | "user_budget" | "project_budget") {
@@ -43,23 +39,23 @@ function weekEnd(date: string): string {
 }
 
 /** Atomically reserves both the per-user and project budget until a provider succeeds or rolls back. */
-export function reserveAiRequest(request: ReserveAiRequest): AiReservation {
+export function reserveAiRequest(request: ReserveAiRequest, config: AiRuntimeConfig = getAiRuntimeConfig()): AiReservation {
   if (!Number.isInteger(request.estimatedCostCents) || request.estimatedCostCents < 0) throw new RangeError("estimatedCostCents must be a non-negative integer.");
   const effectiveDate = today();
   if (request.date !== undefined && request.date !== effectiveDate) throw new RangeError("AI requests must use the server's current date.");
   const month = effectiveDate.slice(0, 7);
   const reserve = db.transaction(() => {
     const userCost = (db.prepare("SELECT COALESCE(SUM(reserved_cost_cents), 0) AS total FROM ai_usage_daily WHERE user_id = ? AND date = ?").get(request.actorUserId, effectiveDate) as { total: number }).total;
-    if (userCost + request.estimatedCostCents > AI_USER_DAILY_BUDGET_CENTS) throw new AiLimitError("user_budget");
+    if (userCost + request.estimatedCostCents > config.userDailyBudgetCents) throw new AiLimitError("user_budget");
     const projectCost = (db.prepare("SELECT COALESCE(SUM(reserved_cost_cents), 0) AS total FROM ai_project_usage_month WHERE month = ?").get(month) as { total: number }).total;
-    if (projectCost + request.estimatedCostCents > AI_PROJECT_MONTHLY_BUDGET_CENTS) throw new AiLimitError("project_budget");
+    if (projectCost + request.estimatedCostCents > config.projectMonthlyBudgetCents) throw new AiLimitError("project_budget");
     if (request.feature === "duo_reflection") {
       if (!request.duoId) throw new AiLimitError("feature");
       const used = (db.prepare("SELECT COALESCE(SUM(request_count), 0) AS total FROM ai_usage_daily WHERE duo_id = ? AND feature = ? AND date BETWEEN ? AND ?").get(request.duoId, request.feature, weekStart(effectiveDate), weekEnd(effectiveDate)) as { total: number }).total;
-      if (used >= 1) throw new AiLimitError("feature");
+      if (used >= config.reflectionsPerDuoPerWeek) throw new AiLimitError("feature");
     } else {
       const used = (db.prepare("SELECT request_count FROM ai_usage_daily WHERE user_id = ? AND feature = ? AND date = ?").get(request.actorUserId, request.feature, effectiveDate) as { request_count: number } | undefined)?.request_count ?? 0;
-      if (used >= DAILY_LIMITS[request.feature]) throw new AiLimitError("feature");
+      if (used >= featureCallLimit(request.feature, config)) throw new AiLimitError("feature");
     }
     db.prepare(`INSERT INTO ai_usage_daily (user_id, duo_id, feature, date, request_count, reserved_cost_cents) VALUES (?, ?, ?, ?, 1, ?)
       ON CONFLICT(user_id, feature, date) DO UPDATE SET request_count = request_count + 1, reserved_cost_cents = reserved_cost_cents + excluded.reserved_cost_cents, duo_id = excluded.duo_id`)
@@ -84,4 +80,12 @@ export function reserveAiRequest(request: ReserveAiRequest): AiReservation {
       active = false;
     },
   };
+}
+
+function featureCallLimit(feature: Exclude<AiFeature, "duo_reflection">, config: AiRuntimeConfig): number {
+  switch (feature) {
+    case "daily_plan": return config.dailyCallsPerUser;
+    case "potd_tutor": return config.tutorCallsPerUser;
+    case "chat": return config.chatCallsPerUser;
+  }
 }

@@ -1,4 +1,5 @@
 import { DemoAiProvider } from "./demoAiProvider.js";
+import { getAiRuntimeConfig, type AiRuntimeConfig } from "./config.js";
 import { buildAiPrompt } from "./prompts.js";
 import type { AiGenerationInput, AiGenerationResult, AiProvider } from "./provider.js";
 
@@ -15,6 +16,7 @@ interface OpenAiResponse {
 export interface OpenAiProviderOptions {
   apiKey?: string;
   fetchImpl?: typeof fetch;
+  config?: Pick<AiRuntimeConfig, "openAiModel">;
 }
 
 /** Stateless OpenAI text generation with a deterministic demo fallback. */
@@ -22,11 +24,13 @@ export class OpenAiProvider implements AiProvider {
   private readonly apiKey: string;
   private readonly fetchImpl: typeof fetch;
   private readonly fallback: AiProvider;
+  private readonly model: string;
 
   constructor(options: OpenAiProviderOptions = {}) {
     this.apiKey = options.apiKey ?? process.env.OPENAI_API_KEY?.trim() ?? "";
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.fallback = new DemoAiProvider();
+    this.model = options.config?.openAiModel ?? getAiRuntimeConfig().openAiModel;
   }
 
   async generate(input: AiGenerationInput): Promise<AiGenerationResult> {
@@ -44,7 +48,7 @@ export class OpenAiProvider implements AiProvider {
             "content-type": "application/json",
           }),
           body: JSON.stringify({
-            model: "gpt-5-mini",
+            model: this.model,
             store: false,
             max_output_tokens: MAX_OUTPUT_TOKENS,
             input: [

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { today } from "../dates.js";
+import { getAiRuntimeConfig } from "./config.js";
 
 process.env.DATA_DIR = mkdtempSync(join(tmpdir(), "duogrow-ai-limits-"));
 
@@ -17,6 +18,14 @@ test("daily feature caps raise a typed limit error", () => {
     () => reserveAiRequest({ actorUserId: "user-1", feature: "daily_plan", date: today(), estimatedCostCents: 1, policyVersion: "v1" }),
     AiLimitError,
   );
+});
+
+test("daily feature cap uses an injected validated configuration", () => {
+  const config = getAiRuntimeConfig({ AI_DAILY_CALLS_PER_USER: "1" });
+  const request = { actorUserId: "user-configured-cap", feature: "daily_plan" as const, date: today(), estimatedCostCents: 1, policyVersion: "v1" };
+  reserveAiRequest(request, config);
+
+  assert.throws(() => reserveAiRequest(request, config), AiLimitError);
 });
 
 test("failed provider reservation rolls usage and project budget back atomically", () => {
