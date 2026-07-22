@@ -96,7 +96,7 @@ export function AiCoachSheet({ isOpen, settings, onClose, client = {} }: AiCoach
           <button className="btn btn--ghost btn--sm" type="button" onClick={onClose} aria-label="Close AI coach">Close</button>
         </div>
         <p id="ai-coach-sheet-description">Coaching receives aggregate progress and goals only. Proof media is never shared.</p>
-        <p className="ai-coach-sheet__mode">{settings.mode === 'demo' ? 'Demo coaching' : 'Live coaching'} · daily budget applies</p>
+        <p className="ai-coach-sheet__mode">{settings.mode === 'demo' ? 'Demo coaching' : settings.mode === 'live' ? 'Live coaching' : 'AI coaching is off'} · daily budget applies</p>
         <div className="ai-coach-sheet__actions" aria-label="Coaching tools">
           <button className="btn btn--outline" type="button" disabled={pending} onClick={() => void request(client.dailyPlan ?? api.dailyPlan)}>Create daily plan</button>
           <button className="btn btn--outline" type="button" disabled={pending || !settings.duoEnabled} onClick={() => void request(client.duoReflection ?? api.duoReflection)}>Duo reflection</button>

@@ -26,6 +26,13 @@ describe('AiCoachSheet', () => {
     expect(screen.getByText(/proof media is never shared/i)).toBeVisible()
   })
 
+  it('labels disabled AI as off rather than live coaching', () => {
+    render(<AiCoachSheet isOpen settings={{ ...settings, personalEnabled: false, mode: 'disabled' }} onClose={vi.fn()} />)
+
+    expect(screen.getByText(/AI coaching is off/)).toBeVisible()
+    expect(screen.queryByText(/Live coaching · daily budget applies/)).not.toBeInTheDocument()
+  })
+
   it('does not issue a request until personal consent is enabled', async () => {
     const user = userEvent.setup()
     const dailyPlan = vi.fn()
