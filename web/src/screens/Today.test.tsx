@@ -13,6 +13,7 @@ vi.mock('../api/client', () => ({
     updateModule: vi.fn(),
     seenCheer: vi.fn(),
     cheer: vi.fn(),
+    aiSettings: vi.fn(),
   },
 }))
 
@@ -41,6 +42,19 @@ const todayResponse: TodayResponse = {
 
 const mockedApi = vi.mocked(api)
 
+const aiSettings = {
+  personalEnabled: true,
+  duoEnabled: false,
+  policyVersion: 'v1',
+  mode: 'demo' as const,
+  usage: {
+    daily_plan: { remaining: 3, estimatedCostCents: 0 },
+    duo_reflection: { remaining: 3, estimatedCostCents: 0 },
+    potd_tutor: { remaining: 3, estimatedCostCents: 0 },
+    chat: { remaining: 3, estimatedCostCents: 0 },
+  },
+}
+
 function renderToday() {
   return render(
     <MemoryRouter>
@@ -56,6 +70,29 @@ afterEach(() => {
 })
 
 describe('Today', () => {
+  it('opens the labelled AI coach from the coach card', async () => {
+    const user = userEvent.setup()
+    mockedApi.today.mockResolvedValue(todayResponse)
+    mockedApi.aiSettings.mockResolvedValue(aiSettings)
+
+    renderToday()
+
+    await user.click(await screen.findByRole('button', { name: 'Ask DuoGrow AI' }))
+
+    expect(screen.getByRole('dialog', { name: 'DuoGrow AI coach' })).toBeVisible()
+    expect(screen.getByRole('textbox', { name: 'Ask your coach' })).toBeVisible()
+  })
+
+  it('keeps Today usable when AI settings cannot be loaded', async () => {
+    mockedApi.today.mockResolvedValue(todayResponse)
+    mockedApi.aiSettings.mockRejectedValue(new Error('Unavailable'))
+
+    renderToday()
+
+    expect(await screen.findByRole('button', { name: '+ Log meal' })).toBeEnabled()
+    expect(screen.getByText('AI coach unavailable')).toBeVisible()
+  })
+
   it('adds a selected meal to the current diet total', async () => {
     const user = userEvent.setup()
     mockedApi.today.mockResolvedValue(todayResponse)

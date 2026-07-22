@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, clearToken } from '../api/client'
-import type { HealthResponse, MeResponse } from '../api/types'
+import type { AiSettings, HealthResponse, MeResponse } from '../api/types'
+import { AiPrivacyPanel } from '../components/AiPrivacyPanel'
 import { Avatar } from '../components/Avatar'
 import { ScreenState } from '../components/ScreenState'
 import { useToast } from '../components/toast-context'
@@ -22,6 +23,8 @@ export function Profile() {
   const [streak, setStreak] = useState<number | null>(null)
   const [health, setHealth] = useState<HealthResponse | null>(null)
   const [loadError, setLoadError] = useState(false)
+  const [aiSettings, setAiSettings] = useState<AiSettings | null>(null)
+  const [aiSettingsError, setAiSettingsError] = useState(false)
 
   const load = useCallback(async () => {
     setLoadError(false)
@@ -37,6 +40,15 @@ export function Profile() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    let cancelled = false
+    api.aiSettings().then(
+      (settings) => { if (!cancelled) setAiSettings(settings) },
+      () => { if (!cancelled) setAiSettingsError(true) },
+    )
+    return () => { cancelled = true }
+  }, [])
 
   const signOut = () => {
     clearToken()
@@ -108,6 +120,11 @@ export function Profile() {
               <span className="profile__ai-dot" />
               {ai.text}
             </span>
+          </section>
+
+          <section aria-labelledby="ai-privacy-section-title">
+            <h2 id="ai-privacy-section-title" className="section-title">AI &amp; Privacy</h2>
+            {aiSettings ? <><AiPrivacyPanel settings={aiSettings} onSettingsChange={setAiSettings} /><p>Partner consent required until mutual consent becomes active.</p></> : <p>{aiSettingsError ? 'AI privacy controls are unavailable.' : 'Loading AI privacy controls…'}</p>}
           </section>
 
           <button type="button" className="btn btn--danger btn--block profile__signout" onClick={signOut}>

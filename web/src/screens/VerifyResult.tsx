@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import type { Band, Proof } from '../api/types'
+import type { AiSettings, Band, Proof } from '../api/types'
+import { AiCoachSheet } from '../components/AiCoachSheet'
 import { CoachBubble } from '../components/CoachBubble'
 import { ConfidenceBadge } from '../components/ConfidenceBadge'
 import { EvidenceChecklist } from '../components/EvidenceChecklist'
@@ -31,6 +32,9 @@ export function VerifyResult() {
   const [proof, setProof] = useState<Proof | null>(null)
   const [error, setError] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [aiSettings, setAiSettings] = useState<AiSettings | null>(null)
+  const [aiSettingsError, setAiSettingsError] = useState(false)
+  const [isCoachOpen, setIsCoachOpen] = useState(false)
   const proofUrl = usePrivateProofUrl(id)
 
   useEffect(() => {
@@ -44,6 +48,15 @@ export function VerifyResult() {
       cancelled = true
     }
   }, [id])
+
+  useEffect(() => {
+    let cancelled = false
+    api.aiSettings().then(
+      (settings) => { if (!cancelled) setAiSettings(settings) },
+      () => { if (!cancelled) setAiSettingsError(true) },
+    )
+    return () => { cancelled = true }
+  }, [])
 
   const confirm = async () => {
     if (!id) return
@@ -123,6 +136,7 @@ export function VerifyResult() {
         )}
 
         <div className="verify__footer">
+          {aiSettings ? <button type="button" className="btn btn--outline btn--block" onClick={() => setIsCoachOpen(true)}>Ask DuoGrow AI</button> : aiSettingsError ? <p>AI coach unavailable</p> : null}
           {band === 'high' && (
             <button type="button" className="btn btn--primary btn--block" onClick={() => navigate('/today')}>
               View updated dashboard →
@@ -152,6 +166,7 @@ export function VerifyResult() {
           )}
         </div>
       </div>
+      {aiSettings && <AiCoachSheet isOpen={isCoachOpen} settings={aiSettings} onClose={() => setIsCoachOpen(false)} />}
     </div>
   )
 }

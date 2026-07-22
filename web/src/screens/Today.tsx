@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
-import type { ModuleKey, Snapshot } from '../api/types'
+import type { AiSettings, ModuleKey, Snapshot } from '../api/types'
+import { AiCoachSheet } from '../components/AiCoachSheet'
 import { CheerButton } from '../components/CheerButton'
 import { CoachBubble } from '../components/CoachBubble'
 import { DuoProgressBar } from '../components/DuoProgressBar'
@@ -29,6 +30,18 @@ export function Today() {
   const shouldRestoreMealFocusRef = useRef(false)
   const [isMealSheetOpen, setIsMealSheetOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [aiSettings, setAiSettings] = useState<AiSettings | null>(null)
+  const [aiSettingsError, setAiSettingsError] = useState(false)
+  const [isCoachOpen, setIsCoachOpen] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    api.aiSettings().then(
+      (settings) => { if (!cancelled) setAiSettings(settings) },
+      () => { if (!cancelled) setAiSettingsError(true) },
+    )
+    return () => { cancelled = true }
+  }, [])
 
   // Surface unseen cheers from partner as toasts, then mark them seen.
   useEffect(() => {
@@ -191,6 +204,9 @@ export function Today() {
         message={data.coachMessage}
         mood={data.duoProgress >= 80 ? 'celebrate' : data.duoProgress < 40 ? 'warn' : 'neutral'}
       />
+      <div className="today__actions">
+        {aiSettings ? <button type="button" className="btn btn--outline btn--sm" onClick={() => setIsCoachOpen(true)}>Ask DuoGrow AI</button> : <p>{aiSettingsError ? 'AI coach unavailable' : 'Loading AI coach…'}</p>}
+      </div>
 
       <DuoProgressBar
         duoProgress={data.duoProgress}
@@ -260,6 +276,7 @@ export function Today() {
         onCancel={closeMealSheet}
         onSubmit={(calories) => void logMeal(calories)}
       />
+      {aiSettings && <AiCoachSheet isOpen={isCoachOpen} settings={aiSettings} onClose={() => setIsCoachOpen(false)} />}
     </div>
   )
 }

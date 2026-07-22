@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
-import type { PotdBankItem, PotdTodayResponse } from '../api/types'
+import type { AiSettings, PotdBankItem, PotdTodayResponse } from '../api/types'
+import { AiCoachSheet } from '../components/AiCoachSheet'
 import { DifficultyPill } from '../components/DifficultyPill'
 import { CheckIcon } from '../components/icons'
 import { ScreenState } from '../components/ScreenState'
@@ -28,6 +29,9 @@ export function Potd() {
   const [loadError, setLoadError] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [aiSettings, setAiSettings] = useState<AiSettings | null>(null)
+  const [aiSettingsError, setAiSettingsError] = useState(false)
+  const [isCoachOpen, setIsCoachOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -42,6 +46,15 @@ export function Potd() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    let cancelled = false
+    api.aiSettings().then(
+      (settings) => { if (!cancelled) setAiSettings(settings) },
+      () => { if (!cancelled) setAiSettingsError(true) },
+    )
+    return () => { cancelled = true }
+  }, [])
 
   const onImport = async (file: File | undefined) => {
     if (!file) return
@@ -96,6 +109,7 @@ export function Potd() {
           >
             I solved it — upload proof
           </button>
+          {aiSettings ? <button type="button" className="btn btn--outline btn--block" onClick={() => setIsCoachOpen(true)}>Tutor</button> : <p>{aiSettingsError ? 'AI coach unavailable' : 'Loading AI coach…'}</p>}
         </article>
       ) : loadError ? (
         <ScreenState title="Problem of the Day is unavailable" onRetry={load} />
@@ -136,6 +150,7 @@ export function Potd() {
           ))}
         </ul>
       </section>
+      {aiSettings && <AiCoachSheet isOpen={isCoachOpen} settings={aiSettings} onClose={() => setIsCoachOpen(false)} />}
     </div>
   )
 }

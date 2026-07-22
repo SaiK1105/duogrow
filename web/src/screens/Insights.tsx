@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
-import type { InsightsResponse, WeeklyReport } from '../api/types'
+import type { AiSettings, InsightsResponse, WeeklyReport } from '../api/types'
+import { AiCoachSheet } from '../components/AiCoachSheet'
 import { BulbIcon, TrophyIcon } from '../components/icons'
 import { ProgressRing } from '../components/ProgressRing'
 import { StatRow } from '../components/StatRow'
@@ -13,6 +14,9 @@ export function Insights() {
   const [insights, setInsights] = useState<InsightsResponse | null>(null)
   const [report, setReport] = useState<WeeklyReport | null>(null)
   const [loadError, setLoadError] = useState(false)
+  const [aiSettings, setAiSettings] = useState<AiSettings | null>(null)
+  const [aiSettingsError, setAiSettingsError] = useState(false)
+  const [isCoachOpen, setIsCoachOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoadError(false)
@@ -27,6 +31,15 @@ export function Insights() {
     void load()
   }, [load])
 
+  useEffect(() => {
+    let cancelled = false
+    api.aiSettings().then(
+      (settings) => { if (!cancelled) setAiSettings(settings) },
+      () => { if (!cancelled) setAiSettingsError(true) },
+    )
+    return () => { cancelled = true }
+  }, [])
+
   const riskHigh = insights ? insights.prediction.riskPercent >= 60 : false
   const riskColor = riskHigh ? 'var(--danger-500)' : 'var(--warn-500)'
 
@@ -36,6 +49,9 @@ export function Insights() {
         <h1 className="insights__title">Insights</h1>
         <p className="insights__sub">What the AI sees in your last seven days.</p>
       </header>
+      <div className="insights__pair">
+        {aiSettings ? <><button type="button" className="btn btn--outline" onClick={() => setIsCoachOpen(true)}>Explain this</button><button type="button" className="btn btn--outline" onClick={() => setIsCoachOpen(true)}>Make a plan</button></> : <p>{aiSettingsError ? 'AI coach unavailable' : 'Loading AI coach…'}</p>}
+      </div>
 
       {insights ? (
         <>
@@ -110,6 +126,7 @@ export function Insights() {
           <p className="insights__verdict">{report.verdict}</p>
         </section>
       )}
+      {aiSettings && <AiCoachSheet isOpen={isCoachOpen} settings={aiSettings} onClose={() => setIsCoachOpen(false)} />}
     </div>
   )
 }
