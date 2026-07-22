@@ -7,7 +7,7 @@ import { today, lastNDays } from "../lib/dates.js";
 import { computeUserWeekStats } from "../lib/weeklyStats.js";
 import { buildDuoReflectionContext, buildPersonalAiContext, type PersonalAiContextInput } from "../lib/ai/context.js";
 import { AiLimitError, reserveAiRequest } from "../lib/ai/limits.js";
-import { AiConsentRequiredError, deleteAiData, getAiSettings, hasDuoReflectionConsent, recordAiAuditEvent, setDuoConsent } from "../lib/ai/policy.js";
+import { deleteAiData, getAiSettings, hasDuoReflectionConsent, recordAiAuditEvent, setDuoConsent } from "../lib/ai/policy.js";
 import { OpenAiProvider } from "../lib/ai/openAiProvider.js";
 import type { AiFeature, UserRow } from "../types.js";
 
@@ -15,70 +15,79 @@ const POLICY_VERSION = "1";
 const ESTIMATED_COST_CENTS = 1;
 const MAX_CHAT_CHARS = 500;
 
-export const aiRoutes = new Hono<AppEnv>();
-aiRoutes.use("*", sessionAuth);
+type AiContext = ReturnType<typeof buildPersonalAiContext> | ReturnType<typeof buildDuoReflectionContext>;
 
-aiRoutes.get("/settings", (c) => c.json(getAiSettings(c.get("user").id, today())));
+export interface AiRouteDependencies {
+  buildContext?: (user: UserRow, feature: AiFeature) => AiContext;
+}
 
-aiRoutes.put("/settings", async (c) => {
-  const body = await jsonRecord(c);
-  if (!body || !onlyKeys(body, ["personalEnabled", "duoEnabled"]) || typeof body.personalEnabled !== "boolean" || typeof body.duoEnabled !== "boolean") {
-    return c.json({ error: "invalid settings" }, 400);
-  }
-  const user = c.get("user");
-  const mode = body.personalEnabled ? (process.env.OPENAI_API_KEY?.trim() ? "live" : "demo") : "disabled";
-  db.prepare(`INSERT INTO ai_preferences (user_id, personal_enabled, duo_enabled, policy_version, mode, updated_at) VALUES (?, ?, ?, ?, ?, ?)
-    ON CONFLICT(user_id) DO UPDATE SET personal_enabled = excluded.personal_enabled, duo_enabled = excluded.duo_enabled, policy_version = excluded.policy_version, mode = excluded.mode, updated_at = excluded.updated_at`)
-    .run(user.id, body.personalEnabled ? 1 : 0, body.duoEnabled ? 1 : 0, POLICY_VERSION, mode, new Date().toISOString());
-  return c.json(getAiSettings(user.id, today()));
-});
+class AiDuoUnavailableError extends Error {}
 
-aiRoutes.put("/duo-consent", async (c) => {
-  const body = await jsonRecord(c);
-  if (!body || !onlyKeys(body, ["enabled"]) || typeof body.enabled !== "boolean") return c.json({ error: "invalid consent" }, 400);
-  const user = c.get("user");
-  if (!user.duo_id) return c.json({ error: "duo unavailable" }, 404);
-  setDuoConsent(user.id, user.duo_id, body.enabled, POLICY_VERSION);
-  return c.json({ enabled: body.enabled, mutual: hasDuoReflectionConsent(user.duo_id) });
-});
+export function createAiRoutes(dependencies: AiRouteDependencies = {}): Hono<AppEnv> {
+  const routes = new Hono<AppEnv>();
+  const buildContext = dependencies.buildContext ?? buildGenerationContext;
+  routes.use("*", sessionAuth);
 
-aiRoutes.delete("/data", (c) => {
-  deleteAiData(c.get("user").id);
-  return c.body(null, 204);
-});
+  routes.get("/settings", (c) => c.json(getAiSettings(c.get("user").id, today())));
 
-aiRoutes.post("/daily-plan", (c) => generate(c, "daily_plan"));
-aiRoutes.post("/duo-reflection", (c) => generate(c, "duo_reflection"));
-aiRoutes.post("/potd-tutor", (c) => generate(c, "potd_tutor"));
-aiRoutes.post("/chat", async (c) => {
-  const body = await jsonRecord(c);
-  if (!body || !onlyKeys(body, ["message"]) || typeof body.message !== "string" || !body.message.trim() || body.message.length > MAX_CHAT_CHARS) {
-    return c.json({ error: "invalid chat message" }, 400);
-  }
-  return generate(c, "chat", body.message);
-});
+  routes.put("/settings", async (c) => {
+    const body = await jsonRecord(c);
+    if (!body || !onlyKeys(body, ["personalEnabled", "duoEnabled"]) || typeof body.personalEnabled !== "boolean" || typeof body.duoEnabled !== "boolean") {
+      return c.json({ error: "invalid settings" }, 400);
+    }
+    const user = c.get("user");
+    const mode = body.personalEnabled ? (process.env.OPENAI_API_KEY?.trim() ? "live" : "demo") : "disabled";
+    db.prepare(`INSERT INTO ai_preferences (user_id, personal_enabled, duo_enabled, policy_version, mode, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET personal_enabled = excluded.personal_enabled, duo_enabled = excluded.duo_enabled, policy_version = excluded.policy_version, mode = excluded.mode, updated_at = excluded.updated_at`)
+      .run(user.id, body.personalEnabled ? 1 : 0, body.duoEnabled ? 1 : 0, POLICY_VERSION, mode, new Date().toISOString());
+    return c.json(getAiSettings(user.id, today()));
+  });
 
-async function generate(c: Context<AppEnv>, feature: AiFeature, userMessage?: string): Promise<Response> {
+  routes.put("/duo-consent", async (c) => {
+    const body = await jsonRecord(c);
+    if (!body || !onlyKeys(body, ["enabled"]) || typeof body.enabled !== "boolean") return c.json({ error: "invalid consent" }, 400);
+    const user = c.get("user");
+    if (!user.duo_id) return c.json({ error: "duo unavailable" }, 404);
+    setDuoConsent(user.id, user.duo_id, body.enabled, POLICY_VERSION);
+    return c.json({ enabled: body.enabled, mutual: hasDuoReflectionConsent(user.duo_id) });
+  });
+
+  routes.delete("/data", (c) => {
+    deleteAiData(c.get("user").id);
+    return c.body(null, 204);
+  });
+
+  routes.post("/daily-plan", (c) => generate(c, "daily_plan", undefined, buildContext));
+  routes.post("/duo-reflection", (c) => generate(c, "duo_reflection", undefined, buildContext));
+  routes.post("/potd-tutor", (c) => generate(c, "potd_tutor", undefined, buildContext));
+  routes.post("/chat", async (c) => {
+    const body = await jsonRecord(c);
+    if (!body || !onlyKeys(body, ["message"]) || typeof body.message !== "string" || !body.message.trim() || body.message.length > MAX_CHAT_CHARS) {
+      return c.json({ error: "invalid chat message" }, 400);
+    }
+    return generate(c, "chat", body.message, buildContext);
+  });
+  return routes;
+}
+
+export const aiRoutes = createAiRoutes();
+
+async function generate(c: Context<AppEnv>, feature: AiFeature, userMessage: string | undefined, buildContext: (user: UserRow, feature: AiFeature) => AiContext): Promise<Response> {
   const user = c.get("user");
   const settings = getAiSettings(user.id, today());
   if (!settings.personalEnabled) return c.json({ error: "personal AI consent required" }, 403);
 
-  let context: ReturnType<typeof buildPersonalAiContext> | ReturnType<typeof buildDuoReflectionContext>;
   let duoId: string | undefined;
   if (feature === "duo_reflection") {
     if (!user.duo_id) return c.json({ error: "duo unavailable" }, 404);
     if (!settings.duoEnabled || !hasDuoReflectionConsent(user.duo_id)) return c.json({ error: "mutual duo consent required" }, 403);
-    const partner = db.prepare<[string, string], UserRow>("SELECT * FROM users WHERE duo_id = ? AND id != ?").get(user.duo_id, user.id);
-    if (!partner) return c.json({ error: "duo unavailable" }, 404);
     duoId = user.duo_id;
-    context = buildDuoReflectionContext({ you: personalSource(user), partner: personalSource(partner) });
-  } else {
-    context = buildPersonalAiContext(personalSource(user));
   }
 
   try {
     const reservation = reserveAiRequest({ actorUserId: user.id, duoId, feature, estimatedCostCents: ESTIMATED_COST_CENTS, policyVersion: settings.policyVersion });
     try {
+      const context = buildContext(user, feature);
       const result = await new OpenAiProvider().generate({ feature, context, userMessage });
       if (!result.text.trim()) throw new Error("provider returned no text");
       recordAiAuditEvent({ eventType: "completed", actorUserId: user.id, duoId: duoId ?? null, feature, policyVersion: settings.policyVersion });
@@ -90,9 +99,17 @@ async function generate(c: Context<AppEnv>, feature: AiFeature, userMessage?: st
     }
   } catch (error) {
     if (error instanceof AiLimitError) return c.json({ error: "AI request limit reached" }, 429);
-    if (error instanceof AiConsentRequiredError) return c.json({ error: "mutual duo consent required" }, 403);
+    if (error instanceof AiDuoUnavailableError) return c.json({ error: "duo unavailable" }, 404);
     return c.json({ error: "AI generation is unavailable" }, 503);
   }
+}
+
+function buildGenerationContext(user: UserRow, feature: AiFeature): AiContext {
+  if (feature !== "duo_reflection") return buildPersonalAiContext(personalSource(user));
+  if (!user.duo_id) throw new AiDuoUnavailableError();
+  const partner = db.prepare<[string, string], UserRow>("SELECT * FROM users WHERE duo_id = ? AND id != ?").get(user.duo_id, user.id);
+  if (!partner) throw new AiDuoUnavailableError();
+  return buildDuoReflectionContext({ you: personalSource(user), partner: personalSource(partner) });
 }
 
 function personalSource(user: UserRow): PersonalAiContextInput {
