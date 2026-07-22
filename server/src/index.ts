@@ -12,6 +12,7 @@ import { proofRoutes } from "./routes/proofs.js";
 import { potdRoutes } from "./routes/potd.js";
 import { cheerRoutes } from "./routes/cheers.js";
 import { insightsRoutes } from "./routes/insights.js";
+import { aiRoutes } from "./routes/ai.js";
 import { healthRoutes, reportRoutes } from "./routes/report.js";
 
 const app = new Hono<AppEnv>();
@@ -25,6 +26,7 @@ api.route("/proofs", proofRoutes);
 api.route("/potd", potdRoutes);
 api.route("/cheers", cheerRoutes);
 api.route("/insights", insightsRoutes);
+api.route("/ai", aiRoutes);
 api.route("/report", reportRoutes);
 api.route("/health", healthRoutes);
 app.route("/api", api);
