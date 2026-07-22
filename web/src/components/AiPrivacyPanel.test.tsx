@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { AiPrivacyPanel } from './AiPrivacyPanel'
 
-const settings = { personalEnabled: false, duoEnabled: false, mutualDuoConsent: false, policyVersion: '1', mode: 'disabled' as const, usage: { daily_plan: { remaining: 3, estimatedCostCents: 0 }, duo_reflection: { remaining: 1, estimatedCostCents: 0 }, potd_tutor: { remaining: 5, estimatedCostCents: 0 }, chat: { remaining: 10, estimatedCostCents: 0 }, insights_explain: { remaining: 3, estimatedCostCents: 0 } } }
+const settings = { personalEnabled: false, duoEnabled: false, mutualDuoConsent: false, policyVersion: '1', mode: 'disabled' as const, dailyBudgetRemainingCents: 2, usage: { daily_plan: { remaining: 3, estimatedCostCents: 0 }, duo_reflection: { remaining: 1, estimatedCostCents: 0 }, potd_tutor: { remaining: 5, estimatedCostCents: 0 }, chat: { remaining: 10, estimatedCostCents: 0 }, insights_explain: { remaining: 3, estimatedCostCents: 0 } } }
 
 function deferred<T>() {
   let resolve: (value: T) => void
@@ -12,12 +12,14 @@ function deferred<T>() {
 }
 
 describe('AiPrivacyPanel', () => {
-  it('discloses consent, withdrawal, provider retention controls, daily budget, and demo state', () => {
+  it('discloses consent, withdrawal, provider retention controls, the real daily-cent budget, and demo state', () => {
     render(<AiPrivacyPanel settings={{ ...settings, mode: 'demo' }} onSettingsChange={vi.fn()} />)
     expect(screen.getByText(/Your consent is required/i)).toBeVisible()
     expect(screen.getByText(/withdraw it at any time/i)).toBeVisible()
     expect(screen.getByText(/provider retention controls/i)).toBeVisible()
     expect(screen.getByText(/Daily budget/i)).toBeVisible()
+    expect(screen.getByText(/2 cents remaining today/i)).toBeVisible()
+    expect(screen.queryByText(/22 requests remaining/i)).not.toBeInTheDocument()
     expect(screen.getByText('Demo coaching is active')).toBeVisible()
   })
 

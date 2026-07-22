@@ -68,6 +68,8 @@ export function getAiSettings(userId: string, date: string, config: AiRuntimeCon
   const preference = db.prepare("SELECT personal_enabled, duo_enabled, policy_version, mode FROM ai_preferences WHERE user_id = ?")
     .get(userId) as { personal_enabled: number; duo_enabled: number; policy_version: string; mode: AiMode } | undefined;
   const counts = db.prepare("SELECT feature, request_count FROM ai_quota_daily WHERE subject_hash = ? AND date = ?").all(quotaSubject(userId), date) as Array<{ feature: AiFeature; request_count: number }>;
+  const dailyCost = (db.prepare("SELECT COALESCE(SUM(reserved_cost_cents), 0) AS total FROM ai_quota_daily WHERE subject_hash = ? AND date = ?")
+    .get(quotaSubject(userId), date) as { total: number }).total;
   const duoId = (db.prepare("SELECT duo_id FROM users WHERE id = ?").get(userId) as { duo_id: string | null } | undefined)?.duo_id;
   const reflectionUsage = duoId
     ? (db.prepare("SELECT COALESCE(SUM(request_count), 0) AS total FROM ai_quota_daily WHERE duo_hash = ? AND feature = ? AND date BETWEEN ? AND ?")
@@ -90,6 +92,7 @@ export function getAiSettings(userId: string, date: string, config: AiRuntimeCon
     mutualDuoConsent: duoId ? hasDuoReflectionConsent(duoId) : false,
     policyVersion: preference?.policy_version ?? DEFAULT_POLICY_VERSION,
     mode: preference?.personal_enabled === 1 ? coachingMode : "disabled",
+    dailyBudgetRemainingCents: Math.max(0, config.userDailyBudgetCents - dailyCost),
     usage,
   };
 }

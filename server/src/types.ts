@@ -17,6 +17,7 @@ export interface AiSettings {
   mutualDuoConsent: boolean;
   policyVersion: string;
   mode: AiMode;
+  dailyBudgetRemainingCents: number;
   usage: Record<AiFeature, { remaining: number; estimatedCostCents: number }>;
 }
 export type PotdStatus = "assigned" | "attempted" | "solved";

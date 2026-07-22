@@ -6,6 +6,7 @@ import { sessionAuth } from "../lib/authMiddleware.js";
 import { today, lastNDays } from "../lib/dates.js";
 import { computeDuoGrowth, computeUserWeekStats } from "../lib/weeklyStats.js";
 import { getStreak } from "../lib/streaks.js";
+import { readBoundedRequestBody } from "../lib/boundedRequestBody.js";
 import { buildDuoReflectionContext, buildInsightsExplainContext, buildPersonalAiContext, buildPotdTutorContext, type PersonalAiContextInput } from "../lib/ai/context.js";
 import { AiLimitError, reserveAiRequest } from "../lib/ai/limits.js";
 import { deleteAiData, getAiSettings, hasDuoReflectionConsent, recordAiAuditEvent, updateAiPreferences } from "../lib/ai/policy.js";
@@ -16,6 +17,8 @@ import type { AiProvider } from "../lib/ai/provider.js";
 const POLICY_VERSION = "1";
 const ESTIMATED_COST_CENTS = 1;
 const MAX_CHAT_CHARS = 500;
+const MAX_SETTINGS_JSON_BYTES = 256;
+const MAX_CHAT_JSON_BYTES = 4 * 1_024;
 
 type AiContext = ReturnType<typeof buildPersonalAiContext> | ReturnType<typeof buildDuoReflectionContext> | ReturnType<typeof buildInsightsExplainContext> | ReturnType<typeof buildPotdTutorContext>;
 
@@ -35,7 +38,9 @@ export function createAiRoutes(dependencies: AiRouteDependencies = {}): Hono<App
   routes.get("/settings", (c) => c.json(getAiSettings(c.get("user").id, today())));
 
   routes.put("/settings", async (c) => {
-    const body = await jsonRecord(c);
+    const parsed = await jsonRecord(c, MAX_SETTINGS_JSON_BYTES);
+    if (!parsed.ok) return c.json({ error: "AI settings request is too large" }, 413);
+    const { body } = parsed;
     if (!body || !onlyKeys(body, ["personalEnabled", "duoEnabled"]) || typeof body.personalEnabled !== "boolean" || typeof body.duoEnabled !== "boolean") {
       return c.json({ error: "invalid settings" }, 400);
     }
@@ -54,7 +59,9 @@ export function createAiRoutes(dependencies: AiRouteDependencies = {}): Hono<App
   routes.post("/potd-tutor", (c) => generate(c, "potd_tutor", undefined, buildContext, provider));
   routes.post("/insights-explain", (c) => generate(c, "insights_explain", undefined, buildContext, provider));
   routes.post("/chat", async (c) => {
-    const body = await jsonRecord(c);
+    const parsed = await jsonRecord(c, MAX_CHAT_JSON_BYTES);
+    if (!parsed.ok) return c.json({ error: "AI chat request is too large" }, 413);
+    const { body } = parsed;
     if (!body || !onlyKeys(body, ["message"]) || typeof body.message !== "string" || !body.message.trim() || body.message.length > MAX_CHAT_CHARS) {
       return c.json({ error: "invalid chat message" }, 400);
     }
@@ -206,9 +213,15 @@ function safeConfig(value: string): { wake: { targetMinutes: number }; study: { 
   }
 }
 
-async function jsonRecord(c: Context<AppEnv>): Promise<Record<string, unknown> | null> {
-  const body = await c.req.json().catch(() => null);
-  return typeof body === "object" && body !== null && !Array.isArray(body) ? body as Record<string, unknown> : null;
+async function jsonRecord(c: Context<AppEnv>, maxBytes: number): Promise<{ ok: true; body: Record<string, unknown> | null } | { ok: false }> {
+  const rawBody = await readBoundedRequestBody(c.req.raw, maxBytes);
+  if (!rawBody.ok) return rawBody;
+  try {
+    const body = JSON.parse(rawBody.text) as unknown;
+    return { ok: true, body: typeof body === "object" && body !== null && !Array.isArray(body) ? body as Record<string, unknown> : null };
+  } catch {
+    return { ok: true, body: null };
+  }
 }
 
 function onlyKeys(body: Record<string, unknown>, allowed: string[]): boolean {

@@ -8,7 +8,7 @@ import { VerifyResult } from './VerifyResult'
 
 vi.mock('../api/client', () => ({ api: { getProof: vi.fn(), applyProof: vi.fn(), proofFile: vi.fn(), aiSettings: vi.fn(), dailyPlan: vi.fn(), duoReflection: vi.fn(), potdTutor: vi.fn(), chat: vi.fn() } }))
 const mockedApi = vi.mocked(api)
-const settings = { personalEnabled: true, duoEnabled: false, mutualDuoConsent: false, policyVersion: 'v1', mode: 'demo' as const, usage: { daily_plan: { remaining: 3, estimatedCostCents: 0 }, duo_reflection: { remaining: 3, estimatedCostCents: 0 }, potd_tutor: { remaining: 3, estimatedCostCents: 0 }, chat: { remaining: 3, estimatedCostCents: 0 }, insights_explain: { remaining: 3, estimatedCostCents: 0 } } }
+const settings = { personalEnabled: true, duoEnabled: false, mutualDuoConsent: false, policyVersion: 'v1', mode: 'demo' as const, dailyBudgetRemainingCents: 3, usage: { daily_plan: { remaining: 3, estimatedCostCents: 0 }, duo_reflection: { remaining: 3, estimatedCostCents: 0 }, potd_tutor: { remaining: 3, estimatedCostCents: 0 }, chat: { remaining: 3, estimatedCostCents: 0 }, insights_explain: { remaining: 3, estimatedCostCents: 0 } } }
 
 beforeEach(() => {
   vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:proof-preview'), revokeObjectURL: vi.fn() })

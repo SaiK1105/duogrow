@@ -65,14 +65,13 @@ export function AiPrivacyPanel({ settings, onSettingsChange, client = {} }: AiPr
     void run('deletion', operation)
   }
 
-  const totalRemaining = Object.values(settings.usage).reduce((total, usage) => total + usage.remaining, 0)
   const controlsDisabled = pendingAction !== null
 
   return <section className="ai-privacy-panel card" aria-labelledby="ai-privacy-title">
     <h2 id="ai-privacy-title">AI privacy controls</h2>
     <p>Your consent is required before personal coaching requests. You can withdraw it at any time.</p>
     <p>Only aggregate progress and goals are sent; proof media is never sent. Live providers follow their provider retention controls. Chat messages are not saved by DuoGrow.</p>
-    <p><strong>Daily budget:</strong> {totalRemaining} requests remaining across available coaching tools.</p>
+    <p><strong>Daily budget:</strong> {settings.dailyBudgetRemainingCents} cents remaining today across your coaching tools.</p>
     <p>{settings.mode === 'demo' ? 'Demo coaching is active' : settings.mode === 'live' ? 'Live coaching is active' : 'AI coaching is off'}</p>
     <label className="ai-privacy-panel__toggle"><input type="checkbox" checked={settings.personalEnabled} disabled={controlsDisabled} onChange={(event) => savePersonal(event.target.checked)} /> Enable personal AI coaching</label>
     <label className="ai-privacy-panel__toggle"><input type="checkbox" checked={settings.duoEnabled} disabled={controlsDisabled} onChange={(event) => saveDuoPreferences(event.target.checked)} /> Allow Duo Reflection</label>

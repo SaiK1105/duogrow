@@ -71,6 +71,21 @@ test("AI settings report configured feature quotas without reading global enviro
     chat: { remaining: 4, estimatedCostCents: 0 },
     insights_explain: { remaining: 2, estimatedCostCents: 0 },
   });
+  assert.equal(settings.dailyBudgetRemainingCents, 3);
+});
+
+test("AI settings report the current shared daily cent balance separately from feature quotas", () => {
+  const userId = "user-daily-budget";
+  const date = today();
+  db.prepare("INSERT INTO users (id, name, duo_id, session_token, config_json, created_at) VALUES (?, ?, NULL, ?, ?, ?)")
+    .run(userId, "Daily budget", "token-daily-budget", "{}", new Date().toISOString());
+  db.prepare("INSERT INTO ai_quota_daily (subject_hash, duo_hash, feature, date, request_count, reserved_cost_cents) VALUES (?, NULL, ?, ?, ?, ?)")
+    .run(quotaSubject(userId), "chat", date, 2, 2);
+
+  const settings = getAiSettings(userId, date, getAiRuntimeConfig({ AI_USER_DAILY_BUDGET_CENTS: "3", AI_CHAT_CALLS_PER_USER: "10" }));
+
+  assert.equal(settings.dailyBudgetRemainingCents, 1);
+  assert.equal(settings.usage.chat.remaining, 8);
 });
 
 test("AI settings derive the coaching mode from current provider availability instead of a saved preference", () => {

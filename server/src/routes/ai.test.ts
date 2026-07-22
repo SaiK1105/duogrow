@@ -34,6 +34,33 @@ async function request(path: string, token: string, method = "POST", body?: unkn
   return app.request(`http://localhost/api/ai${path}`, { method, headers: headers(token), body: body === undefined ? undefined : JSON.stringify(body) });
 }
 
+async function streamedAiWithoutContentLength(path: "/settings" | "/chat", token: string, method: "PUT" | "POST", chunks: Uint8Array[], targetApp = app): Promise<{ response: Response; cancelled: boolean }> {
+  let cancelled = false;
+  let chunkIndex = 0;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      const chunk = chunks[chunkIndex];
+      chunkIndex += 1;
+      if (chunk) {
+        controller.enqueue(chunk);
+      } else {
+        controller.close();
+      }
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+  const request = new Request(`http://localhost/api/ai${path}`, {
+    method,
+    headers: headers(token),
+    body,
+    duplex: "half",
+  } as RequestInit);
+  assert.equal(request.headers.has("content-length"), false);
+  return { response: await targetApp.request(request), cancelled };
+}
+
 function enablePersonal(userId: string): void {
   db.prepare("INSERT INTO ai_preferences (user_id, personal_enabled, duo_enabled, policy_version, mode, updated_at) VALUES (?, 1, 0, '1', 'demo', ?)")
     .run(userId, new Date().toISOString());
@@ -52,12 +79,41 @@ test("chat rejects messages over 500 characters", async () => {
   assert.equal(response.status, 400);
 });
 
+test("AI settings and chat cancel oversized chunked JSON before state changes or provider dispatch", async () => {
+  insertUser("user-bounded-settings", "token-bounded-settings");
+  insertUser("user-bounded-chat", "token-bounded-chat", null);
+  enablePersonal("user-bounded-chat");
+  const encoder = new TextEncoder();
+  const chunks = (body: unknown): Uint8Array[] => {
+    const json = JSON.stringify(body);
+    return [encoder.encode(json.slice(0, 1_024)), encoder.encode(json.slice(1_024))];
+  };
+  let providerCalls = 0;
+  const boundedApp = new Hono();
+  boundedApp.route("/api/ai", createAiRoutes({
+    provider: { generate: async () => { providerCalls += 1; return { text: "must not run", mode: "demo" }; } },
+  }));
+
+  const settings = await streamedAiWithoutContentLength("/settings", "token-bounded-settings", "PUT", chunks({ personalEnabled: true, duoEnabled: true, padding: "x".repeat(2_000) }), boundedApp);
+  assert.equal(settings.response.status, 413);
+  assert.equal(settings.cancelled, true);
+  assert.equal((db.prepare("SELECT count(*) AS count FROM ai_preferences WHERE user_id = ?").get("user-bounded-settings") as { count: number }).count, 0);
+  assert.equal((db.prepare("SELECT count(*) AS count FROM ai_duo_consents WHERE user_id = ?").get("user-bounded-settings") as { count: number }).count, 0);
+
+  const chat = await streamedAiWithoutContentLength("/chat", "token-bounded-chat", "POST", chunks({ message: "x".repeat(5_000) }), boundedApp);
+  assert.equal(chat.response.status, 413);
+  assert.equal(chat.cancelled, true);
+  assert.equal(providerCalls, 0);
+});
+
 test("settings updates atomically record each partner's effective consent and revoke immediately", async () => {
   insertUser("user-duo-one", "token-duo-one", "duo-consent-pair");
   insertUser("user-duo-two", "token-duo-two", "duo-consent-pair");
   const first = await request("/settings", "token-duo-one", "PUT", { personalEnabled: true, duoEnabled: true });
   assert.equal(first.status, 200);
-  assert.equal((await first.json() as { mutualDuoConsent: boolean }).mutualDuoConsent, false);
+  const firstBody = await first.json() as { mutualDuoConsent: boolean; dailyBudgetRemainingCents: number };
+  assert.equal(firstBody.mutualDuoConsent, false);
+  assert.equal(firstBody.dailyBudgetRemainingCents, 3);
   const second = await request("/settings", "token-duo-two", "PUT", { personalEnabled: true, duoEnabled: true });
   assert.equal(second.status, 200);
   assert.equal((await second.json() as { mutualDuoConsent: boolean }).mutualDuoConsent, true);

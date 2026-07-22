@@ -48,6 +48,7 @@ const aiSettings = {
   mutualDuoConsent: false,
   policyVersion: 'v1',
   mode: 'demo' as const,
+  dailyBudgetRemainingCents: 3,
   usage: {
     daily_plan: { remaining: 3, estimatedCostCents: 0 },
     duo_reflection: { remaining: 3, estimatedCostCents: 0 },

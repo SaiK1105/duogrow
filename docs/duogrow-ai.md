@@ -53,6 +53,10 @@ The cent values are application reservation caps, not a pricing promise. Keep
 provider spend alerts enabled outside DuoGrow and review the provider's current
 pricing before changing a model or budget.
 
+Each AI settings response reports the remaining daily reservation cents for the
+current user across all coaching features. It is not a sum of feature request
+caps, a shared partner budget, or a provider invoice.
+
 ## Consent and user controls
 
 Personal AI coaching starts **off**. A person must opt in before their account
@@ -78,6 +82,12 @@ persist chat transcripts or prompts. It keeps only the AI settings, usage
 counters, and audit metadata needed for consent and limits. A chat request
 sends the message the person enters to the coaching provider, so the UI tells
 people not to include sensitive personal information.
+
+The combined settings update (which records Duo consent) and chat routes read
+raw request streams before parsing JSON: settings are capped at 256 bytes and
+chat at 4 KiB. An oversized advertised or chunked body is cancelled and
+receives a 413 response before it can change consent, reserve quota, or reach
+a coaching provider.
 
 ## Coaching data boundary and retention
 

@@ -9,6 +9,7 @@ const settings = {
   mutualDuoConsent: true,
   policyVersion: '1',
   mode: 'demo' as const,
+  dailyBudgetRemainingCents: 3,
   usage: {
     daily_plan: { remaining: 2, estimatedCostCents: 1 },
     duo_reflection: { remaining: 1, estimatedCostCents: 1 },

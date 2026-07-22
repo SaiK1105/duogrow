@@ -8,7 +8,7 @@ import { Potd } from './Potd'
 
 vi.mock('../api/client', () => ({ api: { potdToday: vi.fn(), potdBank: vi.fn(), potdUpload: vi.fn(), aiSettings: vi.fn() } }))
 const mockedApi = vi.mocked(api)
-const settings = { personalEnabled: true, duoEnabled: false, mutualDuoConsent: false, policyVersion: 'v1', mode: 'demo' as const, usage: { daily_plan: { remaining: 3, estimatedCostCents: 0 }, duo_reflection: { remaining: 3, estimatedCostCents: 0 }, potd_tutor: { remaining: 3, estimatedCostCents: 0 }, chat: { remaining: 3, estimatedCostCents: 0 }, insights_explain: { remaining: 3, estimatedCostCents: 0 } } }
+const settings = { personalEnabled: true, duoEnabled: false, mutualDuoConsent: false, policyVersion: 'v1', mode: 'demo' as const, dailyBudgetRemainingCents: 3, usage: { daily_plan: { remaining: 3, estimatedCostCents: 0 }, duo_reflection: { remaining: 3, estimatedCostCents: 0 }, potd_tutor: { remaining: 3, estimatedCostCents: 0 }, chat: { remaining: 3, estimatedCostCents: 0 }, insights_explain: { remaining: 3, estimatedCostCents: 0 } } }
 
 afterEach(() => vi.clearAllMocks())
 

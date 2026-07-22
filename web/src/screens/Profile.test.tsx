@@ -7,7 +7,7 @@ import { Profile } from './Profile'
 
 vi.mock('../api/client', () => ({ api: { me: vi.fn(), today: vi.fn(), health: vi.fn(), aiSettings: vi.fn(), updateAiSettings: vi.fn(), deleteAiData: vi.fn() }, clearToken: vi.fn() }))
 const mockedApi = vi.mocked(api)
-const settings = { personalEnabled: true, duoEnabled: false, mutualDuoConsent: false, policyVersion: 'v1', mode: 'demo' as const, usage: { daily_plan: { remaining: 3, estimatedCostCents: 0 }, duo_reflection: { remaining: 3, estimatedCostCents: 0 }, potd_tutor: { remaining: 3, estimatedCostCents: 0 }, chat: { remaining: 3, estimatedCostCents: 0 }, insights_explain: { remaining: 3, estimatedCostCents: 0 } } }
+const settings = { personalEnabled: true, duoEnabled: false, mutualDuoConsent: false, policyVersion: 'v1', mode: 'demo' as const, dailyBudgetRemainingCents: 3, usage: { daily_plan: { remaining: 3, estimatedCostCents: 0 }, duo_reflection: { remaining: 3, estimatedCostCents: 0 }, potd_tutor: { remaining: 3, estimatedCostCents: 0 }, chat: { remaining: 3, estimatedCostCents: 0 }, insights_explain: { remaining: 3, estimatedCostCents: 0 } } }
 
 afterEach(() => vi.clearAllMocks())
 
