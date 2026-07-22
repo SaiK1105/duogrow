@@ -1,15 +1,29 @@
-/** Data accepted at the AI boundary. Extra fields are deliberately ignored. */
+const GOAL_FIELDS = ["wakeTargetMinutes", "studyTargetMinutes", "workoutTarget", "dietTargetMin", "dietTargetMax", "taskTarget"] as const;
+const WEEK_FIELDS = [
+  "wakeRate", "studyRate", "studyMinutesAvg", "workoutRate", "workoutsDone",
+  "dietOnTargetRate", "dietOnTargetDays", "tasksRate", "potdSolvedRate", "potdSolvedCount", "growthScore",
+] as const;
+const TODAY_MODULES = new Set(["wake", "study", "workout", "diet", "tasks", "potd"]);
+const TODAY_STATUSES = new Set(["pending", "done", "assigned", "attempted", "solved"]);
+
+/** Raw application data accepted at the AI boundary; unlisted properties never cross it. */
 export interface PersonalAiContextInput {
   goals: Record<string, unknown>;
-  today: Array<{ module: string; target: number | null; status: string; value?: number | null; [key: string]: unknown }>;
+  today: Array<Record<string, unknown>>;
   week: Record<string, unknown>;
   [key: string]: unknown;
 }
 
 export interface PersonalAiContext {
-  goals: Record<string, number>;
+  goals: Partial<Record<(typeof GOAL_FIELDS)[number], number>>;
   today: Array<{ module: string; target: number | null; status: string; value: number | null }>;
-  week: Record<string, number>;
+  week: Partial<Record<(typeof WEEK_FIELDS)[number], number>>;
+}
+
+export interface DuoReflectionContextInput {
+  you: PersonalAiContextInput;
+  partner: PersonalAiContextInput;
+  [key: string]: unknown;
 }
 
 export interface DuoReflectionContext {
@@ -17,32 +31,36 @@ export interface DuoReflectionContext {
   partner: PersonalAiContext;
 }
 
-/** Creates a fresh, allow-listed view with no identifiers, prose, or raw rows. */
-export function buildPersonalAiContext(input: PersonalAiContextInput): PersonalAiContext {
+function numericFields<const Fields extends readonly string[]>(source: Record<string, unknown>, fields: Fields): Partial<Record<Fields[number], number>> {
+  const result: Partial<Record<Fields[number], number>> = {};
+  for (const field of fields) {
+    const value = source[field];
+    if (typeof value === "number" && Number.isFinite(value)) result[field as Fields[number]] = value;
+  }
+  return result;
+}
+
+function minimizeTodayEntry(entry: Record<string, unknown>): { module: string; target: number | null; status: string; value: number | null } | null {
+  if (typeof entry.module !== "string" || !TODAY_MODULES.has(entry.module)) return null;
+  if (typeof entry.status !== "string" || !TODAY_STATUSES.has(entry.status)) return null;
   return {
-    goals: Object.fromEntries(Object.entries(input.goals).filter(([, value]) => typeof value === "number" && Number.isFinite(value))) as Record<string, number>,
-    today: input.today.map((entry) => ({
-      module: entry.module,
-      target: entry.target,
-      status: entry.status,
-      value: entry.value ?? null,
-    })),
-    week: Object.fromEntries(Object.entries(input.week).filter(([, value]) => typeof value === "number" && Number.isFinite(value))) as Record<string, number>,
+    module: entry.module,
+    target: typeof entry.target === "number" && Number.isFinite(entry.target) ? entry.target : null,
+    status: entry.status,
+    value: typeof entry.value === "number" && Number.isFinite(entry.value) ? entry.value : null,
   };
 }
 
-/** Keeps the two minimised views positional: `you` and `partner`, never names. */
-export function buildDuoReflectionContext(input: DuoReflectionContext & Record<string, unknown>): DuoReflectionContext {
+/** Creates a fresh, named allow-list view with no identifiers, prose, raw JSON, or media fields. */
+export function buildPersonalAiContext(input: PersonalAiContextInput): PersonalAiContext {
   return {
-    you: {
-      goals: { ...input.you.goals },
-      today: input.you.today.map((entry) => ({ ...entry })),
-      week: { ...input.you.week },
-    },
-    partner: {
-      goals: { ...input.partner.goals },
-      today: input.partner.today.map((entry) => ({ ...entry })),
-      week: { ...input.partner.week },
-    },
+    goals: numericFields(input.goals, GOAL_FIELDS),
+    today: input.today.map(minimizeTodayEntry).filter((entry): entry is NonNullable<typeof entry> => entry !== null),
+    week: numericFields(input.week, WEEK_FIELDS),
   };
+}
+
+/** Applies the exact same minimizer to both positional reflection views; names never enter the output. */
+export function buildDuoReflectionContext(input: DuoReflectionContextInput): DuoReflectionContext {
+  return { you: buildPersonalAiContext(input.you), partner: buildPersonalAiContext(input.partner) };
 }
