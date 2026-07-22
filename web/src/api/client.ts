@@ -1,6 +1,5 @@
 import type {
   AuthResponse,
-  AiDuoConsentResponse,
   AiGenerationResponse,
   AiSettingsResponse,
   DuoResponse,
@@ -130,8 +129,8 @@ async function getBlob(path: string): Promise<Blob> {
 // ===== Typed endpoint wrappers =====
 export const api = {
   // auth / identity
-  register: (name: string) => post<AuthResponse>('/auth/register', { name }),
-  login: (name: string) => post<AuthResponse>('/auth/login', { name }),
+  register: (name: string, secret: string) => post<AuthResponse>('/auth/register', { name, secret }),
+  login: (name: string, secret: string) => post<AuthResponse>('/auth/login', { name, secret }),
   me: () => get<MeResponse>('/auth/me'),
 
   // duo
@@ -180,11 +179,11 @@ export const api = {
   aiSettings: () => get<AiSettingsResponse>('/ai/settings'),
   updateAiSettings: (settings: Pick<AiSettingsResponse, 'personalEnabled' | 'duoEnabled'>) =>
     put<AiSettingsResponse>('/ai/settings', settings),
-  updateAiDuoConsent: (enabled: boolean) => put<AiDuoConsentResponse>('/ai/duo-consent', { enabled }),
   deleteAiData: () => del('/ai/data'),
   dailyPlan: () => post<AiGenerationResponse>('/ai/daily-plan'),
   duoReflection: () => post<AiGenerationResponse>('/ai/duo-reflection'),
   potdTutor: () => post<AiGenerationResponse>('/ai/potd-tutor'),
+  insightsExplain: () => post<AiGenerationResponse>('/ai/insights-explain'),
   chat: (message: string) => post<AiGenerationResponse>('/ai/chat', { message }),
 
   // health

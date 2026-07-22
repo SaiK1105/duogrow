@@ -7,9 +7,9 @@ and operating controls:
   an uploaded proof when `ANTHROPIC_API_KEY` is configured, and it falls back to
   the deterministic `DemoVerifier` when no key is available or demo mode is
   forced.
-- **DuoGrow AI coaching** provides a daily plan, Duo Reflection, POTD tutoring,
-  and short chat coaching. It is a server-only OpenAI integration. It never
-  receives proof media or proof details.
+- **DuoGrow AI coaching** provides a daily plan, an insight explanation, Duo
+  Reflection, POTD tutoring, and short chat coaching. It is a server-only
+  OpenAI integration. It never receives proof media or proof details.
 
 ## Deploying coaching
 
@@ -23,8 +23,10 @@ client.
 Without a deployment key, local coaching uses deterministic **Demo coaching**.
 This is deliberate: a missing key, provider error, timeout, or malformed
 provider output returns labelled demo content rather than pretending a live
-request succeeded. Do not claim that live OpenAI calls were tested locally
-unless a configured deployment key was actually used.
+request succeeded. A failed keyed attempt rolls its reservation back before
+that response; the normal no-key demo path remains subject to the same caps.
+Do not claim that live OpenAI calls were tested locally unless a configured
+deployment key was actually used.
 
 Configure provider-side spend alerts and budgets in the OpenAI account as an
 independent operational safeguard. Application limits complement those alerts;
@@ -54,14 +56,19 @@ pricing before changing a model or budget.
 ## Consent and user controls
 
 Personal AI coaching starts **off**. A person must opt in before their account
-can request a coaching response. Duo Reflection has two layers of consent: the
-requester enables the feature, and both current members of the duo must record
-their consent. Either partner can revoke consent, which immediately prevents
-new Duo Reflection requests until both current partners opt in again.
+can request a coaching response. Each preference save atomically updates that
+member's effective Duo Reflection consent; the returned settings state includes
+whether consent is mutual. Duo Reflection runs only after both current members
+enable it. Either partner can revoke it in that same save, which immediately
+prevents new requests even if a later client request is interrupted.
 
 **Delete AI data** deletes the AI subsystem's preferences, duo-consent records,
-usage records, and audit metadata. It does not delete the user's DuoGrow
-account, duo, goals, daily entries, proofs, or uploaded proof files.
+and audit metadata. It does not delete the user's DuoGrow account, duo, goals,
+daily entries, proofs, or uploaded proof files. To keep a delete/re-consent
+cycle from bypassing caps, the app retains only a pseudonymous per-feature daily
+quota debit (or the current week for Duo Reflection) and a non-user
+project-month aggregate until their enforcement windows expire; neither record
+contains prompts, replies, proof data, or a raw user/duo ID.
 
 Chat prompts and replies are ephemeral in DuoGrow: the application does not
 persist chat transcripts or prompts. It keeps only the AI settings, usage
@@ -72,9 +79,22 @@ counters, and audit metadata needed for consent and limits.
 Coaching receives only the server-defined aggregate goals and progress context:
 selected numeric goal targets, allow-listed daily module status/value fields,
 and aggregate weekly progress. Duo Reflection uses the same minimized view for
-each partner without names. Coaching does **not** send proof media, uploaded
-files, raw proof detail, proof IDs, user IDs, duo IDs, session tokens, or other
-session bearers to OpenAI.
+each partner without names. The Insight Explain action receives only a
+server-derived allow-list of growth/subscore/prediction/narrative values. POTD
+Tutor receives only the current assignment's bounded title, body, topic, and
+difficulty. The browser cannot supply either contextual payload. Coaching does
+**not** send proof media, uploaded files, raw proof detail, proof IDs, user
+IDs, duo IDs, session tokens, or other session bearers to OpenAI.
+
+## Account credentials
+
+Registration and login require a user-chosen secret of at least eight
+characters. DuoGrow salts and hashes it with Node's `scrypt` before storage and
+uses constant-time comparison for login; plaintext secrets are neither stored
+nor returned. A duplicate display name cannot mint a session, and legacy rows
+without a credential cannot be logged into by name alone. Existing sessions
+remain valid. The deterministic seed's public sign-ins (`Sreya` / `demo-sreya`
+and `Sai` / `demo-sai`) are demo-only credentials, not production accounts.
 
 `store: false` asks the Responses API not to store the response through that
 parameter. It is not a claim of Zero Data Retention. Provider retention,
@@ -88,6 +108,8 @@ Session bearer tokens are stored as hashes, not as usable raw tokens. The former
 public `/uploads` path is removed. Proof bytes are available only through the
 authenticated, duo-authorized `GET /api/proofs/:id/file` endpoint; a requester
 outside the proof's duo receives a not-found response.
+Successful proof-byte responses include `Cache-Control: private, no-store` and
+`Vary: x-session` so shared caches cannot reuse one member's private media.
 
 This proof-file protection does not change the verifier contract: the existing
 Anthropic verifier remains separately configured by `ANTHROPIC_API_KEY` and is

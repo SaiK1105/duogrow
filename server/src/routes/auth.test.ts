@@ -1,0 +1,80 @@
+import assert from "node:assert/strict";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+import { Hono } from "hono";
+
+process.env.DATA_DIR = mkdtempSync(join(tmpdir(), "duogrow-auth-routes-"));
+
+const [{ db }, { authRoutes }] = await Promise.all([
+  import("../db.js"),
+  import("./auth.js"),
+]);
+
+const app = new Hono();
+app.route("/api/auth", authRoutes);
+
+async function auth(path: "/register" | "/login", payload: Record<string, unknown>): Promise<Response> {
+  return app.request(`http://localhost/api/auth${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+test("registration and login require a secret and never return or persist it as plaintext", async () => {
+  assert.equal((await auth("/register", { name: "Ada", secret: "short" })).status, 400);
+
+  const created = await auth("/register", { name: "Ada", secret: "correct horse battery staple" });
+  assert.equal(created.status, 200);
+  const body = await created.json() as { token: string; user: { name: string } };
+  assert.equal(body.user.name, "Ada");
+  assert.ok(body.token.length > 20);
+  assert.doesNotMatch(JSON.stringify(body), /correct horse battery staple/);
+
+  const user = db.prepare("SELECT credential_salt, credential_hash FROM users WHERE name = ?").get("Ada") as { credential_salt: string; credential_hash: string };
+  assert.ok(user.credential_salt.length > 10);
+  assert.ok(user.credential_hash.length > 20);
+  assert.doesNotMatch(JSON.stringify(user), /correct horse battery staple/);
+});
+
+test("a duplicate name never mints a session and login verifies the identity-bound secret", async () => {
+  const first = await auth("/register", { name: "Grace", secret: "grace-secret-123" });
+  assert.equal(first.status, 200);
+  const before = db.prepare("SELECT session_token_hash FROM users WHERE name = ?").get("Grace") as { session_token_hash: string };
+
+  const duplicate = await auth("/register", { name: "Grace", secret: "attacker-secret-123" });
+  assert.equal(duplicate.status, 409);
+  const duplicateBody = await duplicate.json() as Record<string, unknown>;
+  assert.equal("token" in duplicateBody, false);
+  const afterDuplicate = db.prepare("SELECT session_token_hash FROM users WHERE name = ?").get("Grace") as { session_token_hash: string };
+  assert.equal(afterDuplicate.session_token_hash, before.session_token_hash);
+
+  assert.equal((await auth("/login", { name: "Grace", secret: "wrong-secret-123" })).status, 401);
+  const loggedIn = await auth("/login", { name: "Grace", secret: "grace-secret-123" });
+  assert.equal(loggedIn.status, 200);
+  assert.ok((await loggedIn.json() as { token: string }).token.length > 20);
+});
+
+test("case-normalized duplicate names are rejected as the same credential identity", async () => {
+  assert.equal((await auth("/register", { name: "Case Fold", secret: "case-fold-secret" })).status, 200);
+  assert.equal((await auth("/register", { name: "case fold", secret: "different-secret" })).status, 409);
+});
+
+test("the database invariant rejects a second normalized credential identity", async () => {
+  assert.equal((await auth("/register", { name: "Database Guard", secret: "database-guard-secret" })).status, 200);
+
+  assert.throws(() => {
+    db.prepare(`INSERT INTO users (id, name, name_normalized, duo_id, session_token, session_token_hash, credential_salt, credential_hash, config_json, created_at)
+      VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)`)
+      .run("duplicate-db-user", "database guard", "database guard", "duplicate-token", "duplicate-token-hash", "salt", "credential-hash", "{}", new Date().toISOString());
+  }, /UNIQUE/);
+});
+
+test("legacy users without a credential cannot log in by name alone", async () => {
+  db.prepare("INSERT INTO users (id, name, duo_id, session_token, session_token_hash, config_json, created_at) VALUES (?, ?, NULL, ?, ?, ?, ?)")
+    .run("legacy-user", "Legacy", "legacy-token", "legacy-token", "{}", new Date().toISOString());
+
+  assert.equal((await auth("/login", { name: "Legacy", secret: "anything-long-enough" })).status, 401);
+});

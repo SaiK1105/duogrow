@@ -5,7 +5,7 @@ export type ModuleStatus = 'pending' | 'done'
 export type Band = 'high' | 'medium' | 'low'
 export type AiStatus = 'pending' | 'verified' | 'review' | 'rejected' | 'error'
 export type Difficulty = 'easy' | 'medium' | 'hard'
-export type AiFeature = 'daily_plan' | 'duo_reflection' | 'potd_tutor' | 'chat'
+export type AiFeature = 'daily_plan' | 'duo_reflection' | 'potd_tutor' | 'chat' | 'insights_explain'
 export type AiMode = 'live' | 'demo' | 'disabled'
 
 // ----- Auth / identity -----
@@ -177,17 +177,13 @@ export interface AiUsage {
 export interface AiSettings {
   personalEnabled: boolean
   duoEnabled: boolean
+  mutualDuoConsent: boolean
   policyVersion: string
   mode: AiMode
   usage: Record<AiFeature, AiUsage>
 }
 
 export interface AiSettingsResponse extends AiSettings {}
-
-export interface AiDuoConsentResponse {
-  enabled: boolean
-  mutual: boolean
-}
 
 export interface AiGenerationResponse {
   text: string

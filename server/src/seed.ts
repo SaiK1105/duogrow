@@ -12,6 +12,7 @@
 import { db } from "./db.js";
 import { newId } from "./lib/ids.js";
 import { hashSessionToken } from "./lib/session.js";
+import { hashCredential } from "./lib/credentials.js";
 import { lastNDays, timeToMinutes } from "./lib/dates.js";
 import { fnv1a, ensureTodayAssignments } from "./lib/potd.js";
 import { setStreak } from "./lib/streaks.js";
@@ -47,12 +48,14 @@ db.prepare(
 ).run(DUO_ID, "Sreya & Sai", INVITE_CODE, SREYA_ID, now);
 
 const insertUser = db.prepare(
-  `INSERT INTO users (id, name, duo_id, session_token, session_token_hash, config_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  `INSERT INTO users (id, name, name_normalized, duo_id, session_token, session_token_hash, credential_salt, credential_hash, config_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 const sreyaTokenHash = hashSessionToken(SREYA_TOKEN);
 const saiTokenHash = hashSessionToken(SAI_TOKEN);
-insertUser.run(SREYA_ID, "Sreya", DUO_ID, sreyaTokenHash, sreyaTokenHash, JSON.stringify(DEFAULT_USER_CONFIG), now);
-insertUser.run(SAI_ID, "Sai", DUO_ID, saiTokenHash, saiTokenHash, JSON.stringify(DEFAULT_USER_CONFIG), now);
+const sreyaCredential = hashCredential("demo-sreya");
+const saiCredential = hashCredential("demo-sai");
+insertUser.run(SREYA_ID, "Sreya", "sreya", DUO_ID, sreyaTokenHash, sreyaTokenHash, sreyaCredential.salt, sreyaCredential.hash, JSON.stringify(DEFAULT_USER_CONFIG), now);
+insertUser.run(SAI_ID, "Sai", "sai", DUO_ID, saiTokenHash, saiTokenHash, saiCredential.salt, saiCredential.hash, JSON.stringify(DEFAULT_USER_CONFIG), now);
 
 // --- Daily entries: 6 full prior days + today partially complete -----------
 
@@ -258,8 +261,7 @@ const { growthScore, subscores } = computeDuoGrowth(DUO_ID, members, 6, days);
 console.log("");
 console.log("DuoGrow demo seed complete.");
 console.log(`  Duo: Sreya & Sai  |  invite code: ${INVITE_CODE}`);
-console.log(`  Sreya session token: ${SREYA_TOKEN}`);
-console.log(`  Sai session token: ${SAI_TOKEN}`);
+console.log("  Demo-only sign-in secrets: Sreya / demo-sreya, Sai / demo-sai");
 console.log(`  Streak: 6 (last advanced ${priorDays[priorDays.length - 1]})`);
 console.log(`  Today's POTD pick: "${todaysQuestion?.title ?? "none"}"`);
 console.log(

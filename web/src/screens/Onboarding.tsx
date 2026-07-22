@@ -8,6 +8,7 @@ import { useToast } from '../components/toast-context'
 import './onboarding.css'
 
 type Step = 'loading' | 'name' | 'choice' | 'waiting' | 'join' | 'success'
+type IdentityMode = 'register' | 'login'
 
 const POLL_MS = 3000
 
@@ -17,6 +18,8 @@ export function Onboarding() {
 
   const [step, setStep] = useState<Step>('loading')
   const [name, setName] = useState('')
+  const [secret, setSecret] = useState('')
+  const [identityMode, setIdentityMode] = useState<IdentityMode>('register')
   const [joinCode, setJoinCode] = useState('')
   const [duo, setDuo] = useState<Duo | null>(null)
   const [partnerName, setPartnerName] = useState('your partner')
@@ -100,7 +103,7 @@ export function Onboarding() {
     setBusy(true)
     setError(null)
     try {
-      const res = await api.register(trimmed)
+      const res = identityMode === 'register' ? await api.register(trimmed, secret) : await api.login(trimmed, secret)
       setToken(res.token)
       selfNameRef.current = res.user.name
       selfIdRef.current = res.user.id
@@ -188,14 +191,32 @@ export function Onboarding() {
             placeholder="First name"
             autoFocus
           />
+          <input
+            className="onb__input"
+            type="password"
+            value={secret}
+            onChange={(e) => setSecret(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submitName()}
+            placeholder="Choose a secret (8+ characters)"
+            minLength={8}
+            autoComplete={identityMode === 'register' ? 'new-password' : 'current-password'}
+          />
           {error && <p className="onb__error">{error}</p>}
           <button
             type="button"
             className="btn btn--primary btn--block"
             onClick={submitName}
-            disabled={busy || !name.trim()}
+            disabled={busy || !name.trim() || secret.length < 8}
           >
-            {busy ? 'Setting up…' : 'Continue'}
+            {busy ? 'Setting up…' : identityMode === 'register' ? 'Create account' : 'Sign in'}
+          </button>
+          <button
+            type="button"
+            className="btn btn--ghost btn--block"
+            onClick={() => { setIdentityMode((mode) => mode === 'register' ? 'login' : 'register'); setError(null) }}
+            disabled={busy}
+          >
+            {identityMode === 'register' ? 'I already have an account' : 'Create a new account'}
           </button>
         </section>
       )}

@@ -7,6 +7,7 @@ const FEATURE_INSTRUCTIONS: Record<AiGenerationInput["feature"], string> = {
   daily_plan: "Offer one short, practical plan for today based only on the supplied numbers.",
   duo_reflection: "Offer one short shared reflection and a practical next step without ranking either person.",
   potd_tutor: "Give one progressive hint only. Do not provide a complete solution, code, or final answer.",
+  insights_explain: "Explain the supplied insight and growth data in plain language without adding facts not present in the context.",
   chat: "Offer one short, action-oriented coaching response.",
 };
 

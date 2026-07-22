@@ -58,26 +58,32 @@ export class OpenAiProvider implements AiProvider {
           }),
           signal: controller.signal,
         });
-        if (!result.ok) return this.fallback.generate(input);
+        if (!result.ok) return this.failedLiveFallback(input);
         return await this.extract(result, input);
       } finally {
         clearTimeout(timeout);
       }
     } catch {
-      return this.fallback.generate(input);
+      return this.failedLiveFallback(input);
     }
   }
 
   private async extract(response: Response, input: AiGenerationInput): Promise<AiGenerationResult> {
     const body = await response.json() as OpenAiResponse;
     const text = extractOutputText(body.output);
-    if (!text) return this.fallback.generate(input);
+    if (!text) return this.failedLiveFallback(input);
     return {
       text,
       mode: "live",
       inputTokens: numericUsage(body.usage?.input_tokens),
       outputTokens: numericUsage(body.usage?.output_tokens),
     };
+  }
+
+  private async failedLiveFallback(input: AiGenerationInput): Promise<AiGenerationResult> {
+    const fallback = await this.fallback.generate(input);
+    Object.defineProperty(fallback, "rollbackReservation", { value: true, enumerable: false });
+    return fallback;
   }
 }
 

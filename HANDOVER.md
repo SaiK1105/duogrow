@@ -76,7 +76,7 @@ demo AI that never fails on stage, and a one-command production deploy.
 
 | Area | Current state | To productionize |
 |---|---|---|
-| Auth | Name-only opaque bearer per tab; only a hash is persisted (still demo-grade) | Real accounts (email/OAuth), rotation/expiry and production identity controls |
+| Auth | Display name plus a user-chosen 8+ character secret; salted `scrypt` credential and hashed per-tab bearer are persisted | Email/OAuth, recovery, rotation/expiry and production identity controls |
 | Partner sync | 3-second polling | WebSockets / SSE for instant push |
 | AI verification | Demo verifier (deterministic) | Set `ANTHROPIC_API_KEY` → live Claude vision (already wired) |
 | AI coaching | Personal opt-in, mutual Duo Reflection consent, deterministic no-key demo fallback | Operate the server-only OpenAI integration with provider alerts and account retention controls |
@@ -128,18 +128,23 @@ no CORS); in dev, Vite serves the SPA on :5173 and proxies `/api` to :8787.
 
 **AI coaching is deliberately separate:** it is opt-in, uses only minimized
 aggregate progress/goals context, and returns deterministic labelled demo
-content if no server-side `OPENAI_API_KEY` is configured. It never receives a
-proof file. Duo Reflection needs active consent from both current partners, and
-either may revoke it. See [`docs/duogrow-ai.md`](docs/duogrow-ai.md) before
-changing its privacy boundary.
+content if no server-side `OPENAI_API_KEY` is configured. A failed keyed call
+releases its quota reservation before that demo response. It never receives a
+proof file. Each AI-preference save atomically updates its member's effective
+Duo Reflection consent; both current partners must be enabled, and either can
+revoke it immediately. Insight Explain uses server-derived allow-listed insight
+data, while POTD Tutor uses only the current bounded assignment fields. See
+[`docs/duogrow-ai.md`](docs/duogrow-ai.md) before changing this boundary.
 
 **Proof files are no longer public:** the old `/uploads` static path is absent.
 The client uses authenticated `GET /api/proofs/:id/file`, which also checks that
-the requester belongs to the proof's duo. Persisted session bearers are hashes.
+the requester belongs to the proof's duo. Its bytes are `private, no-store` and
+vary by session. Persisted session bearers are hashes.
 
 **The demo seed is deterministic** — today's POTD ("Two Sum") is *derived* by the
 same `fnv1a(duoId:date)` hash the API uses, not hardcoded, so `npm run reset`
-always reproduces the exact demo state.
+always reproduces the exact demo state. The public demo-only sign-ins are
+`Sreya` / `demo-sreya` and `Sai` / `demo-sai`.
 
 ---
 
@@ -260,8 +265,8 @@ coverage, not passing tests.
   server/src/lib/weeklyStats.ts, then for the streak rule in streaks.ts."*
 - *"Add image compression and thumbnail generation for uploaded proofs so we
   don't store full-size images."*
-- *"Add a real email + password auth flow to replace the name-only login, using
-  the existing session-token mechanism as the session layer."*
+- *"Add email/OAuth, credential recovery, and session rotation/expiry on top of
+  the existing secret-authentication and session-token mechanism."*
 
 ### Guardrails for Codex (and any AI agent)
 

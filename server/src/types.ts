@@ -8,12 +8,13 @@ export const MODULE_NAMES: ModuleName[] = ["wake", "study", "workout", "diet", "
 export type EntryStatus = "pending" | "done";
 export type ProofBand = "high" | "medium" | "low";
 export type AiStatus = "pending" | "verified" | "review" | "rejected" | "error";
-export type AiFeature = "daily_plan" | "duo_reflection" | "potd_tutor" | "chat";
+export type AiFeature = "daily_plan" | "duo_reflection" | "potd_tutor" | "chat" | "insights_explain";
 export type AiMode = "live" | "demo" | "disabled";
 
 export interface AiSettings {
   personalEnabled: boolean;
   duoEnabled: boolean;
+  mutualDuoConsent: boolean;
   policyVersion: string;
   mode: AiMode;
   usage: Record<AiFeature, { remaining: number; estimatedCostCents: number }>;
@@ -52,6 +53,8 @@ export interface UserRow {
   duo_id: string | null;
   session_token: string;
   session_token_hash: string;
+  credential_salt: string | null;
+  credential_hash: string | null;
   config_json: string;
   created_at: string;
 }

@@ -7,10 +7,11 @@ import { Hono } from "hono";
 
 process.env.DATA_DIR = mkdtempSync(join(tmpdir(), "duogrow-ai-routes-"));
 
-const [{ db }, { hashSessionToken }, { today }, { aiRoutes, createAiRoutes }] = await Promise.all([
+const [{ db }, { hashSessionToken }, { today }, { quotaSubject }, { aiRoutes, createAiRoutes }] = await Promise.all([
   import("../db.js"),
   import("../lib/session.js"),
   import("../lib/dates.js"),
+  import("../lib/quotaIdentity.js"),
   import("./ai.js"),
 ]);
 
@@ -51,16 +52,42 @@ test("chat rejects messages over 500 characters", async () => {
   assert.equal(response.status, 400);
 });
 
-test("duo reflection succeeds with two current opt-ins and fails after either revokes", async () => {
+test("settings updates atomically record each partner's effective consent and revoke immediately", async () => {
   insertUser("user-duo-one", "token-duo-one", "duo-consent-pair");
   insertUser("user-duo-two", "token-duo-two", "duo-consent-pair");
-  assert.equal((await request("/settings", "token-duo-one", "PUT", { personalEnabled: true, duoEnabled: true })).status, 200);
-  assert.equal((await request("/settings", "token-duo-two", "PUT", { personalEnabled: true, duoEnabled: true })).status, 200);
-  assert.equal((await request("/duo-consent", "token-duo-one", "PUT", { enabled: true })).status, 200);
-  assert.equal((await request("/duo-consent", "token-duo-two", "PUT", { enabled: true })).status, 200);
+  const first = await request("/settings", "token-duo-one", "PUT", { personalEnabled: true, duoEnabled: true });
+  assert.equal(first.status, 200);
+  assert.equal((await first.json() as { mutualDuoConsent: boolean }).mutualDuoConsent, false);
+  const second = await request("/settings", "token-duo-two", "PUT", { personalEnabled: true, duoEnabled: true });
+  assert.equal(second.status, 200);
+  assert.equal((await second.json() as { mutualDuoConsent: boolean }).mutualDuoConsent, true);
   assert.equal((await request("/duo-reflection", "token-duo-one")).status, 200);
-  assert.equal((await request("/duo-consent", "token-duo-two", "PUT", { enabled: false })).status, 200);
+  assert.equal((await request("/settings", "token-duo-two", "PUT", { personalEnabled: true, duoEnabled: false })).status, 200);
   assert.equal((await request("/duo-reflection", "token-duo-one")).status, 403);
+});
+
+test("a consent revocation while reflection context is pending prevents provider dispatch", async () => {
+  insertUser("user-race-one", "token-race-one", "duo-race");
+  insertUser("user-race-two", "token-race-two", "duo-race");
+  assert.equal((await request("/settings", "token-race-one", "PUT", { personalEnabled: true, duoEnabled: true })).status, 200);
+  assert.equal((await request("/settings", "token-race-two", "PUT", { personalEnabled: true, duoEnabled: true })).status, 200);
+  let startContext: (() => void) | undefined;
+  let releaseContext: ((value: ReturnType<typeof import("../lib/ai/context.js").buildDuoReflectionContext>) => void) | undefined;
+  const contextStarted = new Promise<void>((resolve) => { startContext = resolve; });
+  const pendingContext = new Promise<ReturnType<typeof import("../lib/ai/context.js").buildDuoReflectionContext>>((resolve) => { releaseContext = resolve; });
+  let providerCalls = 0;
+  const raceApp = new Hono();
+  raceApp.route("/api/ai", createAiRoutes({
+    buildContext: () => { startContext?.(); return pendingContext; },
+    provider: { generate: async () => { providerCalls += 1; return { text: "must not run", mode: "demo" }; } },
+  }));
+  const reflection = raceApp.request("http://localhost/api/ai/duo-reflection", { method: "POST", headers: headers("token-race-one") });
+  await contextStarted;
+  assert.equal((await request("/settings", "token-race-two", "PUT", { personalEnabled: true, duoEnabled: false })).status, 200);
+  releaseContext?.({ you: { goals: {}, today: [], week: {} }, partner: { goals: {}, today: [], week: {} } });
+
+  assert.equal((await reflection).status, 403);
+  assert.equal(providerCalls, 0);
 });
 
 test("daily plan returns a labelled demo response", async () => {
@@ -75,6 +102,45 @@ test("daily plan returns a labelled demo response", async () => {
   assert.equal(typeof body.estimatedCostCents, "number");
 });
 
+test("a provider-failure demo fallback releases both pseudonymous quota reservations", async () => {
+  insertUser("user-live-fallback", "token-live-fallback");
+  enablePersonal("user-live-fallback");
+  const fallbackApp = new Hono();
+  fallbackApp.route("/api/ai", createAiRoutes({
+    provider: { generate: async () => ({ text: "Demo recovery.", mode: "demo", rollbackReservation: true }) },
+  }));
+  const beforeDaily = db.prepare("SELECT COALESCE(SUM(request_count), 0) AS count FROM ai_quota_daily WHERE subject_hash = ?").get(quotaSubject("user-live-fallback")) as { count: number };
+  const beforeMonthly = db.prepare("SELECT COALESCE(reserved_cost_cents, 0) AS count FROM ai_project_quota_month WHERE month = ?").get(today().slice(0, 7)) as { count: number } | undefined;
+
+  const response = await fallbackApp.request("http://localhost/api/ai/daily-plan", { method: "POST", headers: headers("token-live-fallback") });
+
+  assert.equal(response.status, 200);
+  assert.equal((db.prepare("SELECT COALESCE(SUM(request_count), 0) AS count FROM ai_quota_daily WHERE subject_hash = ?").get(quotaSubject("user-live-fallback")) as { count: number }).count, beforeDaily.count);
+  assert.equal((db.prepare("SELECT COALESCE(reserved_cost_cents, 0) AS count FROM ai_project_quota_month WHERE month = ?").get(today().slice(0, 7)) as { count: number } | undefined)?.count ?? 0, beforeMonthly?.count ?? 0);
+});
+
+test("contextual coaching routes send only server-derived allow-listed insight and current-assignment fields", async () => {
+  insertUser("user-contextual", "token-contextual", "duo-contextual");
+  enablePersonal("user-contextual");
+  const date = today();
+  db.prepare("INSERT INTO potd_questions (id, duo_id, source, topic, difficulty, title, body, answer, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .run("question-contextual", "duo-contextual", "private source", "Arrays", "easy", "Two Sum", "Find the pair.", "private answer", new Date().toISOString());
+  db.prepare("INSERT INTO potd_assignments (id, duo_id, user_id, question_id, date, mode, status, proof_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .run("assignment-contextual", "duo-contextual", "user-contextual", "question-contextual", date, "same", "assigned", "proof-secret", new Date().toISOString());
+  const inputs: Array<{ feature: string; context: unknown }> = [];
+  const contextualApp = new Hono();
+  contextualApp.route("/api/ai", createAiRoutes({
+    provider: { generate: async (input) => { inputs.push({ feature: input.feature, context: input.context }); return { text: "A narrow hint.", mode: "demo" }; } },
+  }));
+
+  assert.equal((await contextualApp.request("http://localhost/api/ai/potd-tutor", { method: "POST", headers: headers("token-contextual") })).status, 200);
+  assert.equal((await contextualApp.request("http://localhost/api/ai/insights-explain", { method: "POST", headers: headers("token-contextual"), body: JSON.stringify({ browserSupplied: "never trusted" }) })).status, 200);
+
+  assert.deepEqual(inputs[0], { feature: "potd_tutor", context: { assignment: { title: "Two Sum", body: "Find the pair.", topic: "Arrays", difficulty: "easy" } } });
+  assert.deepEqual(Object.keys(inputs[1]?.context as Record<string, unknown>).sort(), ["growthScore", "prediction", "strength", "subscores", "suggestion", "weeklyVerdict"]);
+  assert.doesNotMatch(JSON.stringify(inputs), /private source|private answer|proof-secret|assignment-contextual|question-contextual|browserSupplied/i);
+});
+
 test("daily plan quota produces 429", async () => {
   insertUser("user-quota", "token-quota");
   enablePersonal("user-quota");
@@ -85,8 +151,8 @@ test("daily plan quota produces 429", async () => {
 test("an exhausted quota does not build generation context", async () => {
   insertUser("user-quota-guard", "token-quota-guard");
   enablePersonal("user-quota-guard");
-  db.prepare("INSERT INTO ai_usage_daily (user_id, duo_id, feature, date, request_count, reserved_cost_cents) VALUES (?, NULL, 'daily_plan', ?, 3, 3)")
-    .run("user-quota-guard", today());
+  db.prepare("INSERT INTO ai_quota_daily (subject_hash, duo_hash, feature, date, request_count, reserved_cost_cents) VALUES (?, NULL, 'daily_plan', ?, 3, 3)")
+    .run(quotaSubject("user-quota-guard"), today());
   let contextBuilds = 0;
   const guardedApp = new Hono();
   guardedApp.route("/api/ai", createAiRoutes({
@@ -100,13 +166,13 @@ test("an exhausted quota does not build generation context", async () => {
   assert.equal(contextBuilds, 0);
 });
 
-test("settings update, consent revocation, and AI data deletion are available", async () => {
+test("deleting visible AI data does not reset today's quota after a user reconsents", async () => {
   insertUser("user-settings", "token-settings");
-  assert.equal((await request("/settings", "token-settings", "PUT", { personalEnabled: true, duoEnabled: true })).status, 200);
-  assert.equal((await request("/duo-consent", "token-settings", "PUT", { enabled: true })).status, 200);
-  assert.equal((await request("/duo-consent", "token-settings", "PUT", { enabled: false })).status, 200);
+  assert.equal((await request("/settings", "token-settings", "PUT", { personalEnabled: true, duoEnabled: false })).status, 200);
+  for (let index = 0; index < 3; index += 1) assert.equal((await request("/daily-plan", "token-settings")).status, 200);
   assert.equal((await request("/data", "token-settings", "DELETE")).status, 204);
-  assert.equal((await request("/settings", "token-settings", "GET")).status, 200);
+  assert.equal((await request("/settings", "token-settings", "PUT", { personalEnabled: true, duoEnabled: false })).status, 200);
+  assert.equal((await request("/daily-plan", "token-settings")).status, 429);
 });
 
 test("chat text never becomes an AI database record", async () => {

@@ -6,6 +6,7 @@ import { AiCoachSheet } from './AiCoachSheet'
 const settings = {
   personalEnabled: true,
   duoEnabled: true,
+  mutualDuoConsent: true,
   policyVersion: '1',
   mode: 'demo' as const,
   usage: {
@@ -13,6 +14,7 @@ const settings = {
     duo_reflection: { remaining: 1, estimatedCostCents: 1 },
     potd_tutor: { remaining: 5, estimatedCostCents: 1 },
     chat: { remaining: 10, estimatedCostCents: 1 },
+    insights_explain: { remaining: 2, estimatedCostCents: 1 },
   },
 }
 
@@ -61,11 +63,20 @@ describe('AiCoachSheet', () => {
     const chat = vi.fn()
     render(<AiCoachSheet isOpen settings={settings} onClose={vi.fn()} client={{ chat }} />)
 
+    expect(screen.getByLabelText('Ask your coach')).toHaveAttribute('maxLength', '500')
+
     fireEvent.change(screen.getByLabelText('Ask your coach'), { target: { value: 'x'.repeat(501) } })
     await user.click(screen.getByRole('button', { name: 'Send message' }))
 
     expect(chat).not.toHaveBeenCalled()
     expect(screen.getByRole('alert')).toHaveTextContent('500 characters or fewer')
+  })
+
+  it('disables and explains Duo Reflection until both partners have consented', () => {
+    render(<AiCoachSheet isOpen settings={{ ...settings, mutualDuoConsent: false }} onClose={vi.fn()} />)
+
+    expect(screen.getByRole('button', { name: 'Duo reflection' })).toBeDisabled()
+    expect(screen.getByText(/Both partners must enable Duo Reflection/i)).toBeVisible()
   })
 
   it('shows quota and retry states after a failed request', async () => {

@@ -45,6 +45,7 @@ const mockedApi = vi.mocked(api)
 const aiSettings = {
   personalEnabled: true,
   duoEnabled: false,
+  mutualDuoConsent: false,
   policyVersion: 'v1',
   mode: 'demo' as const,
   usage: {
@@ -52,6 +53,7 @@ const aiSettings = {
     duo_reflection: { remaining: 3, estimatedCostCents: 0 },
     potd_tutor: { remaining: 3, estimatedCostCents: 0 },
     chat: { remaining: 3, estimatedCostCents: 0 },
+    insights_explain: { remaining: 3, estimatedCostCents: 0 },
   },
 }
 

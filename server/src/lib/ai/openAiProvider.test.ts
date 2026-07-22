@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { getAiRuntimeConfig } from "./config.js";
 import { OpenAiProvider } from "./openAiProvider.js";
-import type { AiGenerationInput } from "./provider.js";
+import type { AiGenerationInput, AiGenerationResult } from "./provider.js";
 
 const input: AiGenerationInput = {
   feature: "daily_plan",
@@ -85,4 +85,13 @@ test("OpenAI provider falls back deterministically when key is absent or live ou
       assert.deepEqual(await provider.generate(input), { text: "Pick one 25-minute study block and start it now.", mode: "demo" });
     });
   }
+});
+
+test("a failed live attempt marks its demo fallback for quota rollback without exposing provider details", async () => {
+  const provider = new OpenAiProvider({ apiKey: "sk-valid", fetchImpl: async () => response({ error: "nope" }, 500) });
+  const result = await provider.generate(input) as AiGenerationResult;
+
+  assert.equal(result.mode, "demo");
+  assert.equal(result.rollbackReservation, true);
+  assert.doesNotMatch(JSON.stringify(result), /nope|sk-valid/i);
 });

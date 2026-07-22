@@ -3,7 +3,7 @@ import { api } from '../api/client'
 import type { AiSettings } from '../api/types'
 import './ai-privacy-panel.css'
 
-type PrivacyClient = Pick<typeof api, 'updateAiSettings' | 'updateAiDuoConsent' | 'deleteAiData'>
+type PrivacyClient = Pick<typeof api, 'updateAiSettings' | 'deleteAiData'>
 type PendingAction = 'preferences' | 'deletion' | null
 
 interface RetryAction {
@@ -51,8 +51,7 @@ export function AiPrivacyPanel({ settings, onSettingsChange, client = {} }: AiPr
     const operation = async () => {
       const next = await (client.updateAiSettings ?? api.updateAiSettings)({ personalEnabled: settings.personalEnabled, duoEnabled: enabled })
       onSettingsChange(next)
-      const consent = await (client.updateAiDuoConsent ?? api.updateAiDuoConsent)(enabled)
-      setStatus(consent.mutual ? 'Mutual partner consent is active.' : 'Waiting for your partner to consent.')
+      setStatus(next.mutualDuoConsent ? 'Mutual partner consent is active.' : 'Waiting for your partner to consent.')
     }
     void run('preferences', operation)
   }
@@ -61,7 +60,7 @@ export function AiPrivacyPanel({ settings, onSettingsChange, client = {} }: AiPr
     const operation = async () => {
       await (client.deleteAiData ?? api.deleteAiData)()
       setConfirmingDeletion(false)
-      setStatus('AI data deleted. Your DuoGrow activity and proof data were not changed.')
+      setStatus('AI data deleted. Your DuoGrow activity and proof data were not changed; current quota debits remain until they expire.')
     }
     void run('deletion', operation)
   }
@@ -77,10 +76,10 @@ export function AiPrivacyPanel({ settings, onSettingsChange, client = {} }: AiPr
     <p>{settings.mode === 'demo' ? 'Demo coaching is active' : settings.mode === 'live' ? 'Live coaching is active' : 'AI coaching is off'}</p>
     <label className="ai-privacy-panel__toggle"><input type="checkbox" checked={settings.personalEnabled} disabled={controlsDisabled} onChange={(event) => savePersonal(event.target.checked)} /> Enable personal AI coaching</label>
     <label className="ai-privacy-panel__toggle"><input type="checkbox" checked={settings.duoEnabled} disabled={controlsDisabled} onChange={(event) => saveDuoPreferences(event.target.checked)} /> Allow Duo Reflection</label>
-    <p className="ai-privacy-panel__note">Duo Reflection runs only when both partners consent. Either partner can withdraw consent.</p>
+    <p className="ai-privacy-panel__note">{settings.mutualDuoConsent ? 'Mutual Duo Reflection consent is active.' : 'Duo Reflection is unavailable until both partners enable it.'} Either partner can withdraw consent.</p>
     {pendingAction && <p role="status" aria-live="polite">Saving your AI controls…</p>}
     {status && <p role="status" aria-live="polite">{status}</p>}
     {error && <div className="ai-privacy-panel__error"><p role="alert" aria-live="polite">{error}</p>{retry && <button className="btn btn--outline" type="button" onClick={() => void run(retry.kind, retry.operation)}>Retry last action</button>}</div>}
-    {confirmingDeletion ? <div className="ai-privacy-panel__confirm"><p>This cannot be undone. Delete AI preferences, usage, and audit data?</p><button className="btn btn--danger" type="button" disabled={controlsDisabled} onClick={deleteData}>{pendingAction === 'deletion' ? 'Deleting AI data…' : 'Confirm deletion'}</button><button className="btn btn--ghost" type="button" disabled={controlsDisabled} onClick={() => setConfirmingDeletion(false)}>Cancel</button></div> : <button className="btn btn--danger" type="button" disabled={controlsDisabled} onClick={() => setConfirmingDeletion(true)}>Delete AI data</button>}
+    {confirmingDeletion ? <div className="ai-privacy-panel__confirm"><p>This cannot be undone. Delete AI preferences, consent, and audit data? Minimal pseudonymous quota debits remain only until their cap window expires.</p><button className="btn btn--danger" type="button" disabled={controlsDisabled} onClick={deleteData}>{pendingAction === 'deletion' ? 'Deleting AI data…' : 'Confirm deletion'}</button><button className="btn btn--ghost" type="button" disabled={controlsDisabled} onClick={() => setConfirmingDeletion(false)}>Cancel</button></div> : <button className="btn btn--danger" type="button" disabled={controlsDisabled} onClick={() => setConfirmingDeletion(true)}>Delete AI data</button>}
   </section>
 }

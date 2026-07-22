@@ -36,3 +36,33 @@ test("duo reflection applies the personal minimizer to both partners", () => {
   assert.deepEqual(context.partner, { goals: { taskTarget: 5 }, today: [{ module: "tasks", target: 5, status: "pending", value: null }], week: { growthScore: 70 } });
   assert.doesNotMatch(JSON.stringify(context), /Sreya|Sai|proof|raw|partner\.jpg|partner-id|you-id|55|66/i);
 });
+
+test("insight explanations and POTD tutoring each accept only their dedicated server-derived allow-list", async () => {
+  const contextModule = await import("./context.js") as typeof import("./context.js") & {
+    buildInsightsExplainContext?: (value: Record<string, unknown>) => unknown;
+    buildPotdTutorContext?: (value: Record<string, unknown>) => unknown;
+  };
+  assert.equal(typeof contextModule.buildInsightsExplainContext, "function");
+  assert.equal(typeof contextModule.buildPotdTutorContext, "function");
+
+  const insight = contextModule.buildInsightsExplainContext!({
+    growthScore: 82,
+    subscores: { discipline: 80, mind: 82, health: 70, consistency: 90, private: 999 },
+    prediction: { behavior: "miss study", riskPercent: 40, reason: "two late starts", forUser: "Ada", proof_id: "proof-1" },
+    suggestion: "start early", strength: "consistent wakeups", weeklyVerdict: "solid week",
+    proof: { file_path: "/private.jpg" }, userId: "user-1",
+  });
+  assert.deepEqual(insight, {
+    growthScore: 82,
+    subscores: { discipline: 80, mind: 82, health: 70, consistency: 90 },
+    prediction: { behavior: "miss study", riskPercent: 40, reason: "two late starts" },
+    suggestion: "start early", strength: "consistent wakeups", weeklyVerdict: "solid week",
+  });
+  assert.doesNotMatch(JSON.stringify(insight), /Ada|proof|private|user-1|999/i);
+
+  const tutor = contextModule.buildPotdTutorContext!({
+    title: "Two sum", body: "Find the pair.", topic: "Arrays", difficulty: "easy", id: "q-1", source: "Private bank", proof_id: "proof-2", answer: "secret",
+  });
+  assert.deepEqual(tutor, { assignment: { title: "Two sum", body: "Find the pair.", topic: "Arrays", difficulty: "easy" } });
+  assert.doesNotMatch(JSON.stringify(tutor), /q-1|Private bank|proof|secret/i);
+});

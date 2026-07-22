@@ -4,6 +4,7 @@ const DEMO_COPY: Record<AiGenerationInput["feature"], string> = {
   daily_plan: "Pick one 25-minute study block and start it now.",
   duo_reflection: "Choose one shared win and one small next step together.",
   potd_tutor: "Start by naming the input, output, and one constraint.",
+  insights_explain: "Your growth score reflects the consistency in the progress shown this week.",
   chat: "Choose the smallest next action you can finish today.",
 };
 

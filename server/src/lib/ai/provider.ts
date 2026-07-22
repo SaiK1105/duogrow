@@ -1,9 +1,9 @@
 import type { AiFeature } from "../../types.js";
-import type { DuoReflectionContext, PersonalAiContext } from "./context.js";
+import type { DuoReflectionContext, InsightsExplainContext, PersonalAiContext, PotdTutorContext } from "./context.js";
 
 export interface AiGenerationInput {
   feature: AiFeature;
-  context: PersonalAiContext | DuoReflectionContext;
+  context: PersonalAiContext | DuoReflectionContext | InsightsExplainContext | PotdTutorContext;
   userMessage?: string;
 }
 
@@ -16,4 +16,6 @@ export interface AiGenerationResult {
   mode: "live" | "demo";
   inputTokens?: number;
   outputTokens?: number;
+  /** Internal only: a keyed provider failure returned demo copy and must not consume a reservation. */
+  rollbackReservation?: boolean;
 }

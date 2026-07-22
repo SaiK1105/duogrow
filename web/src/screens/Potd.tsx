@@ -150,7 +150,7 @@ export function Potd() {
           ))}
         </ul>
       </section>
-      {aiSettings && <AiCoachSheet isOpen={isCoachOpen} settings={aiSettings} onClose={() => setIsCoachOpen(false)} />}
+      {aiSettings && <AiCoachSheet isOpen={isCoachOpen} settings={aiSettings} initialAction="potd_tutor" onClose={() => setIsCoachOpen(false)} />}
     </div>
   )
 }

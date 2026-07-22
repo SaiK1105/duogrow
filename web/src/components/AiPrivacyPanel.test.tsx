@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { AiPrivacyPanel } from './AiPrivacyPanel'
 
-const settings = { personalEnabled: false, duoEnabled: false, policyVersion: '1', mode: 'disabled' as const, usage: { daily_plan: { remaining: 3, estimatedCostCents: 0 }, duo_reflection: { remaining: 1, estimatedCostCents: 0 }, potd_tutor: { remaining: 5, estimatedCostCents: 0 }, chat: { remaining: 10, estimatedCostCents: 0 } } }
+const settings = { personalEnabled: false, duoEnabled: false, mutualDuoConsent: false, policyVersion: '1', mode: 'disabled' as const, usage: { daily_plan: { remaining: 3, estimatedCostCents: 0 }, duo_reflection: { remaining: 1, estimatedCostCents: 0 }, potd_tutor: { remaining: 5, estimatedCostCents: 0 }, chat: { remaining: 10, estimatedCostCents: 0 }, insights_explain: { remaining: 3, estimatedCostCents: 0 } } }
 
 function deferred<T>() {
   let resolve: (value: T) => void
@@ -21,17 +21,14 @@ describe('AiPrivacyPanel', () => {
     expect(screen.getByText('Demo coaching is active')).toBeVisible()
   })
 
-  it('updates personal consent and records duo consent separately', async () => {
+  it('uses one settings update to atomically record the effective duo consent', async () => {
     const user = userEvent.setup()
-    const updateAiSettings = vi.fn().mockResolvedValue({ ...settings, personalEnabled: true, mode: 'demo' })
-    const updateAiDuoConsent = vi.fn().mockResolvedValue({ enabled: true, mutual: false })
-    render(<AiPrivacyPanel settings={settings} onSettingsChange={vi.fn()} client={{ updateAiSettings, updateAiDuoConsent }} />)
+    const updateAiSettings = vi.fn().mockResolvedValue({ ...settings, personalEnabled: true, duoEnabled: true, mode: 'demo' })
+    render(<AiPrivacyPanel settings={settings} onSettingsChange={vi.fn()} client={{ updateAiSettings }} />)
 
-    await user.click(screen.getByRole('checkbox', { name: 'Enable personal AI coaching' }))
     await user.click(screen.getByRole('checkbox', { name: 'Allow Duo Reflection' }))
 
-    expect(updateAiSettings).toHaveBeenCalledWith({ personalEnabled: true, duoEnabled: false })
-    expect(updateAiDuoConsent).toHaveBeenCalledWith(true)
+    expect(updateAiSettings).toHaveBeenCalledWith({ personalEnabled: false, duoEnabled: true })
     expect(screen.getByRole('status')).toHaveTextContent('Waiting for your partner')
   })
 
@@ -60,19 +57,15 @@ describe('AiPrivacyPanel', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Personal AI consent saved')
   })
 
-  it('awaits preference persistence before mutual duo-consent feedback', async () => {
+  it('awaits the single preference transaction before mutual duo-consent feedback', async () => {
     const user = userEvent.setup()
     const preferences = deferred<typeof settings>()
-    const consent = deferred<{ enabled: boolean; mutual: boolean }>()
     const updateAiSettings = vi.fn().mockReturnValue(preferences.promise)
-    const updateAiDuoConsent = vi.fn().mockReturnValue(consent.promise)
-    render(<AiPrivacyPanel settings={settings} onSettingsChange={vi.fn()} client={{ updateAiSettings, updateAiDuoConsent }} />)
+    render(<AiPrivacyPanel settings={settings} onSettingsChange={vi.fn()} client={{ updateAiSettings }} />)
 
     await user.click(screen.getByRole('checkbox', { name: 'Allow Duo Reflection' }))
-    expect(updateAiDuoConsent).not.toHaveBeenCalled()
-    preferences.resolve({ ...settings, duoEnabled: true })
-    await waitFor(() => expect(updateAiDuoConsent).toHaveBeenCalledWith(true))
-    consent.resolve({ enabled: true, mutual: true })
+    expect(screen.getByText(/Saving your AI controls/i)).toBeVisible()
+    preferences.resolve({ ...settings, duoEnabled: true, mutualDuoConsent: true })
     await waitFor(() => expect(screen.getByText('Mutual partner consent is active.')).toBeVisible())
   })
 })

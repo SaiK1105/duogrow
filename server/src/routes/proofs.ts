@@ -191,7 +191,7 @@ proofRoutes.get("/:id/file", async (c) => {
     if (!file.isFile()) return c.json({ error: "proof not found" }, 404);
 
     const stream = Readable.toWeb(createReadStream(resolvedPath)) as ReadableStream;
-    return new Response(stream, { headers: { "Content-Type": row.mime_type } });
+    return new Response(stream, { headers: { "Content-Type": row.mime_type, "Cache-Control": "private, no-store", "Vary": "x-session" } });
   } catch {
     return c.json({ error: "proof not found" }, 404);
   }

@@ -4,19 +4,28 @@ import { api, ApiError } from '../api/client'
 import type { AiGenerationResponse, AiSettings } from '../api/types'
 import './ai-coach-sheet.css'
 
-type CoachClient = Pick<typeof api, 'dailyPlan' | 'duoReflection' | 'potdTutor' | 'chat'>
+type CoachClient = Pick<typeof api, 'dailyPlan' | 'duoReflection' | 'potdTutor' | 'insightsExplain' | 'chat'>
+export type CoachAction = 'daily_plan' | 'duo_reflection' | 'potd_tutor' | 'insights_explain'
 
 interface AiCoachSheetProps {
   isOpen: boolean
   settings: AiSettings
   onClose: () => void
+  initialAction?: CoachAction
   client?: Partial<CoachClient>
 }
 
 const FOCUSABLE_SELECTOR = 'button:not([disabled]), textarea:not([disabled])'
 const MAX_CHAT_CHARS = 500
 
-export function AiCoachSheet({ isOpen, settings, onClose, client = {} }: AiCoachSheetProps) {
+const ACTION_LABELS: Record<CoachAction, string> = {
+  daily_plan: 'Create daily plan',
+  duo_reflection: 'Duo reflection',
+  potd_tutor: 'POTD tutor',
+  insights_explain: 'Explain insights',
+}
+
+export function AiCoachSheet({ isOpen, settings, onClose, initialAction, client = {} }: AiCoachSheetProps) {
   const dialogRef = useRef<HTMLElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
   const [message, setMessage] = useState('')
@@ -95,15 +104,18 @@ export function AiCoachSheet({ isOpen, settings, onClose, client = {} }: AiCoach
           <div><p className="ai-coach-sheet__eyebrow">Private, optional support</p><h2 id="ai-coach-sheet-title">DuoGrow AI coach</h2></div>
           <button className="btn btn--ghost btn--sm" type="button" onClick={onClose} aria-label="Close AI coach">Close</button>
         </div>
+        {initialAction && <p className="ai-coach-sheet__selected-action">Selected action: {ACTION_LABELS[initialAction]}</p>}
         <p id="ai-coach-sheet-description">Coaching receives aggregate progress and goals only. Proof media is never shared.</p>
         <p className="ai-coach-sheet__mode">{settings.mode === 'demo' ? 'Demo coaching' : settings.mode === 'live' ? 'Live coaching' : 'AI coaching is off'} · daily budget applies</p>
         <div className="ai-coach-sheet__actions" aria-label="Coaching tools">
           <button className="btn btn--outline" type="button" disabled={pending} onClick={() => void request(client.dailyPlan ?? api.dailyPlan)}>Create daily plan</button>
-          <button className="btn btn--outline" type="button" disabled={pending || !settings.duoEnabled} onClick={() => void request(client.duoReflection ?? api.duoReflection)}>Duo reflection</button>
+          <button className="btn btn--outline" type="button" disabled={pending || !settings.duoEnabled || !settings.mutualDuoConsent} onClick={() => void request(client.duoReflection ?? api.duoReflection)}>Duo reflection</button>
           <button className="btn btn--outline" type="button" disabled={pending} onClick={() => void request(client.potdTutor ?? api.potdTutor)}>POTD tutor</button>
+          <button className="btn btn--outline" type="button" disabled={pending} onClick={() => void request(client.insightsExplain ?? api.insightsExplain)}>Explain insights</button>
         </div>
+        {!settings.mutualDuoConsent && <p className="ai-coach-sheet__note">Both partners must enable Duo Reflection before it is available.</p>}
         <label className="ai-coach-sheet__label" htmlFor="ai-coach-message">Ask your coach</label>
-        <textarea id="ai-coach-message" value={message} maxLength={MAX_CHAT_CHARS + 1} onChange={(event) => setMessage(event.target.value)} aria-describedby="ai-coach-counter" />
+        <textarea id="ai-coach-message" value={message} maxLength={MAX_CHAT_CHARS} onChange={(event) => setMessage(event.target.value)} aria-describedby="ai-coach-counter" />
         <p id="ai-coach-counter" className="ai-coach-sheet__counter">{message.length}/{MAX_CHAT_CHARS}</p>
         <button className="btn btn--primary" type="button" disabled={pending} onClick={sendChat}>Send message</button>
         {pending && <p role="status" aria-live="polite">Coaching is thinking…</p>}

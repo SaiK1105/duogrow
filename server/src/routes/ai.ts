@@ -4,21 +4,26 @@ import { db } from "../db.js";
 import type { AppEnv } from "../honoEnv.js";
 import { sessionAuth } from "../lib/authMiddleware.js";
 import { today, lastNDays } from "../lib/dates.js";
-import { computeUserWeekStats } from "../lib/weeklyStats.js";
-import { buildDuoReflectionContext, buildPersonalAiContext, type PersonalAiContextInput } from "../lib/ai/context.js";
+import { computeDuoGrowth, computeUserWeekStats } from "../lib/weeklyStats.js";
+import { getStreak } from "../lib/streaks.js";
+import { getVerifier } from "../lib/verifier.js";
+import { buildDuoReflectionContext, buildInsightsExplainContext, buildPersonalAiContext, buildPotdTutorContext, type PersonalAiContextInput } from "../lib/ai/context.js";
 import { AiLimitError, reserveAiRequest } from "../lib/ai/limits.js";
-import { deleteAiData, getAiSettings, hasDuoReflectionConsent, recordAiAuditEvent, setDuoConsent } from "../lib/ai/policy.js";
+import { deleteAiData, getAiSettings, hasDuoReflectionConsent, recordAiAuditEvent, updateAiPreferences } from "../lib/ai/policy.js";
 import { OpenAiProvider } from "../lib/ai/openAiProvider.js";
 import type { AiFeature, UserRow } from "../types.js";
+import type { AiProvider } from "../lib/ai/provider.js";
+import type { WeeklyStats } from "../lib/verifierTypes.js";
 
 const POLICY_VERSION = "1";
 const ESTIMATED_COST_CENTS = 1;
 const MAX_CHAT_CHARS = 500;
 
-type AiContext = ReturnType<typeof buildPersonalAiContext> | ReturnType<typeof buildDuoReflectionContext>;
+type AiContext = ReturnType<typeof buildPersonalAiContext> | ReturnType<typeof buildDuoReflectionContext> | ReturnType<typeof buildInsightsExplainContext> | ReturnType<typeof buildPotdTutorContext>;
 
 export interface AiRouteDependencies {
-  buildContext?: (user: UserRow, feature: AiFeature) => AiContext;
+  buildContext?: (user: UserRow, feature: AiFeature) => AiContext | Promise<AiContext>;
+  provider?: AiProvider;
 }
 
 class AiDuoUnavailableError extends Error {}
@@ -26,6 +31,7 @@ class AiDuoUnavailableError extends Error {}
 export function createAiRoutes(dependencies: AiRouteDependencies = {}): Hono<AppEnv> {
   const routes = new Hono<AppEnv>();
   const buildContext = dependencies.buildContext ?? buildGenerationContext;
+  const provider = dependencies.provider ?? new OpenAiProvider();
   routes.use("*", sessionAuth);
 
   routes.get("/settings", (c) => c.json(getAiSettings(c.get("user").id, today())));
@@ -37,19 +43,8 @@ export function createAiRoutes(dependencies: AiRouteDependencies = {}): Hono<App
     }
     const user = c.get("user");
     const mode = body.personalEnabled ? (process.env.OPENAI_API_KEY?.trim() ? "live" : "demo") : "disabled";
-    db.prepare(`INSERT INTO ai_preferences (user_id, personal_enabled, duo_enabled, policy_version, mode, updated_at) VALUES (?, ?, ?, ?, ?, ?)
-      ON CONFLICT(user_id) DO UPDATE SET personal_enabled = excluded.personal_enabled, duo_enabled = excluded.duo_enabled, policy_version = excluded.policy_version, mode = excluded.mode, updated_at = excluded.updated_at`)
-      .run(user.id, body.personalEnabled ? 1 : 0, body.duoEnabled ? 1 : 0, POLICY_VERSION, mode, new Date().toISOString());
+    updateAiPreferences({ userId: user.id, duoId: user.duo_id, personalEnabled: body.personalEnabled, duoEnabled: body.duoEnabled, policyVersion: POLICY_VERSION, mode });
     return c.json(getAiSettings(user.id, today()));
-  });
-
-  routes.put("/duo-consent", async (c) => {
-    const body = await jsonRecord(c);
-    if (!body || !onlyKeys(body, ["enabled"]) || typeof body.enabled !== "boolean") return c.json({ error: "invalid consent" }, 400);
-    const user = c.get("user");
-    if (!user.duo_id) return c.json({ error: "duo unavailable" }, 404);
-    setDuoConsent(user.id, user.duo_id, body.enabled, POLICY_VERSION);
-    return c.json({ enabled: body.enabled, mutual: hasDuoReflectionConsent(user.duo_id) });
   });
 
   routes.delete("/data", (c) => {
@@ -57,22 +52,23 @@ export function createAiRoutes(dependencies: AiRouteDependencies = {}): Hono<App
     return c.body(null, 204);
   });
 
-  routes.post("/daily-plan", (c) => generate(c, "daily_plan", undefined, buildContext));
-  routes.post("/duo-reflection", (c) => generate(c, "duo_reflection", undefined, buildContext));
-  routes.post("/potd-tutor", (c) => generate(c, "potd_tutor", undefined, buildContext));
+  routes.post("/daily-plan", (c) => generate(c, "daily_plan", undefined, buildContext, provider));
+  routes.post("/duo-reflection", (c) => generate(c, "duo_reflection", undefined, buildContext, provider));
+  routes.post("/potd-tutor", (c) => generate(c, "potd_tutor", undefined, buildContext, provider));
+  routes.post("/insights-explain", (c) => generate(c, "insights_explain", undefined, buildContext, provider));
   routes.post("/chat", async (c) => {
     const body = await jsonRecord(c);
     if (!body || !onlyKeys(body, ["message"]) || typeof body.message !== "string" || !body.message.trim() || body.message.length > MAX_CHAT_CHARS) {
       return c.json({ error: "invalid chat message" }, 400);
     }
-    return generate(c, "chat", body.message, buildContext);
+    return generate(c, "chat", body.message, buildContext, provider);
   });
   return routes;
 }
 
 export const aiRoutes = createAiRoutes();
 
-async function generate(c: Context<AppEnv>, feature: AiFeature, userMessage: string | undefined, buildContext: (user: UserRow, feature: AiFeature) => AiContext): Promise<Response> {
+async function generate(c: Context<AppEnv>, feature: AiFeature, userMessage: string | undefined, buildContext: (user: UserRow, feature: AiFeature) => AiContext | Promise<AiContext>, provider: AiProvider): Promise<Response> {
   const user = c.get("user");
   const settings = getAiSettings(user.id, today());
   if (!settings.personalEnabled) return c.json({ error: "personal AI consent required" }, 403);
@@ -87,10 +83,15 @@ async function generate(c: Context<AppEnv>, feature: AiFeature, userMessage: str
   try {
     const reservation = reserveAiRequest({ actorUserId: user.id, duoId, feature, estimatedCostCents: ESTIMATED_COST_CENTS, policyVersion: settings.policyVersion });
     try {
-      const context = buildContext(user, feature);
-      const result = await new OpenAiProvider().generate({ feature, context, userMessage });
+      const context = await buildContext(user, feature);
+      if (feature === "duo_reflection" && (!user.duo_id || !hasDuoReflectionConsent(user.duo_id))) {
+        reservation.rollback();
+        return c.json({ error: "mutual duo consent required" }, 403);
+      }
+      const result = await provider.generate({ feature, context, userMessage });
       if (!result.text.trim()) throw new Error("provider returned no text");
-      recordAiAuditEvent({ eventType: "completed", actorUserId: user.id, duoId: duoId ?? null, feature, policyVersion: settings.policyVersion });
+      if (result.rollbackReservation) reservation.rollback();
+      else recordAiAuditEvent({ eventType: "completed", actorUserId: user.id, duoId: duoId ?? null, feature, policyVersion: settings.policyVersion });
       const usage = getAiSettings(user.id, today()).usage[feature];
       return c.json({ text: result.text, mode: result.mode, remaining: usage.remaining, estimatedCostCents: ESTIMATED_COST_CENTS });
     } catch (error) {
@@ -104,12 +105,44 @@ async function generate(c: Context<AppEnv>, feature: AiFeature, userMessage: str
   }
 }
 
-function buildGenerationContext(user: UserRow, feature: AiFeature): AiContext {
+async function buildGenerationContext(user: UserRow, feature: AiFeature): Promise<AiContext> {
+  if (feature === "insights_explain") return buildInsightsExplainContext(await insightSource(user));
+  if (feature === "potd_tutor") return buildPotdTutorContext(potdTutorSource(user));
   if (feature !== "duo_reflection") return buildPersonalAiContext(personalSource(user));
   if (!user.duo_id) throw new AiDuoUnavailableError();
   const partner = db.prepare<[string, string], UserRow>("SELECT * FROM users WHERE duo_id = ? AND id != ?").get(user.duo_id, user.id);
   if (!partner) throw new AiDuoUnavailableError();
   return buildDuoReflectionContext({ you: personalSource(user), partner: personalSource(partner) });
+}
+
+async function insightSource(user: UserRow): Promise<Record<string, unknown>> {
+  if (!user.duo_id) {
+    return {
+      growthScore: 0, subscores: { discipline: 0, mind: 0, health: 0, consistency: 0 },
+      prediction: { behavior: "get started", riskPercent: 0, reason: "No duo yet." },
+      suggestion: "Create or join a duo to start tracking together.", strength: "You're set up and ready to go.", weeklyVerdict: "No data yet — this week is a blank canvas.",
+    };
+  }
+  const days = lastNDays(7, today());
+  const partner = db.prepare<[string, string], UserRow>("SELECT * FROM users WHERE duo_id = ? AND id != ?").get(user.duo_id, user.id);
+  const members = partner ? [user, partner] : [user];
+  const streak = getStreak(user.duo_id);
+  const { growthScore, subscores } = computeDuoGrowth(user.duo_id, members, streak.current_streak, days);
+  const stats: WeeklyStats = {
+    days, you: computeUserWeekStats(user, days), partner: partner ? computeUserWeekStats(partner, days) : null,
+    streak: streak.current_streak, growthScore, subscores,
+  };
+  const narrative = await getVerifier().insights(stats);
+  return { growthScore, subscores, prediction: narrative.prediction, suggestion: narrative.suggestion, strength: narrative.strength, weeklyVerdict: narrative.weeklyVerdict };
+}
+
+function potdTutorSource(user: UserRow): Record<string, unknown> | null {
+  const assignment = db.prepare<[string, string], { title: string; body: string; topic: string; difficulty: string }>(
+    `SELECT q.title, q.body, q.topic, q.difficulty
+     FROM potd_assignments a JOIN potd_questions q ON q.id = a.question_id
+     WHERE a.user_id = ? AND a.date = ?`,
+  ).get(user.id, today());
+  return assignment ?? null;
 }
 
 function personalSource(user: UserRow): PersonalAiContextInput {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { AiSettings, InsightsResponse, WeeklyReport } from '../api/types'
-import { AiCoachSheet } from '../components/AiCoachSheet'
+import { AiCoachSheet, type CoachAction } from '../components/AiCoachSheet'
 import { BulbIcon, TrophyIcon } from '../components/icons'
 import { ProgressRing } from '../components/ProgressRing'
 import { StatRow } from '../components/StatRow'
@@ -17,6 +17,12 @@ export function Insights() {
   const [aiSettings, setAiSettings] = useState<AiSettings | null>(null)
   const [aiSettingsError, setAiSettingsError] = useState(false)
   const [isCoachOpen, setIsCoachOpen] = useState(false)
+  const [coachAction, setCoachAction] = useState<CoachAction | undefined>(undefined)
+
+  const openCoach = (action: CoachAction) => {
+    setCoachAction(action)
+    setIsCoachOpen(true)
+  }
 
   const load = useCallback(async () => {
     setLoadError(false)
@@ -50,7 +56,7 @@ export function Insights() {
         <p className="insights__sub">What the AI sees in your last seven days.</p>
       </header>
       <div className="insights__pair">
-        {aiSettings ? <><button type="button" className="btn btn--outline" onClick={() => setIsCoachOpen(true)}>Explain this</button><button type="button" className="btn btn--outline" onClick={() => setIsCoachOpen(true)}>Make a plan</button></> : <p>{aiSettingsError ? 'AI coach unavailable' : 'Loading AI coach…'}</p>}
+        {aiSettings ? <><button type="button" className="btn btn--outline" onClick={() => openCoach('insights_explain')}>Explain this</button><button type="button" className="btn btn--outline" onClick={() => openCoach('daily_plan')}>Make a plan</button></> : <p>{aiSettingsError ? 'AI coach unavailable' : 'Loading AI coach…'}</p>}
       </div>
 
       {insights ? (
@@ -126,7 +132,7 @@ export function Insights() {
           <p className="insights__verdict">{report.verdict}</p>
         </section>
       )}
-      {aiSettings && <AiCoachSheet isOpen={isCoachOpen} settings={aiSettings} onClose={() => setIsCoachOpen(false)} />}
+      {aiSettings && <AiCoachSheet isOpen={isCoachOpen} settings={aiSettings} initialAction={coachAction} onClose={() => setIsCoachOpen(false)} />}
     </div>
   )
 }
