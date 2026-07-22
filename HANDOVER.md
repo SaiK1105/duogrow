@@ -30,8 +30,10 @@ it**. Written for Sreya. No prior context assumed.
 
 The two tabs act as the two partners. Open the live URL in **two tabs** side by side.
 
-1. **Tab A** — enter the name **Sreya** → Continue. **Tab B** — enter **Sai**.
-   Both land on the shared dashboard (already paired, 6-day streak, growth 86).
+1. **Tab A** — choose **I already have an account**, enter **Sreya** and
+   **demo-sreya**, then select **Sign in**. **Tab B** — do the same with
+   **Sai** and **demo-sai**. Both land on the shared dashboard (already paired,
+   6-day streak, growth 86).
 2. **Point out the shared dashboard** — both partners, today's progress rings,
    the duo streak, the coach message.
 3. **The money shot (Tab A, as Sreya):** open the **Workout** module → **Upload
@@ -56,12 +58,15 @@ The two tabs act as the two partners. Open the live URL in **two tabs** side by 
 - [ ] **Fresh demo data:** in the Render dashboard, **Manual Deploy → Restart
       service** (or just let it be — it reseeds pristine on every boot). Wait for
       it to come back, then reload the app.
-- [ ] Open **two tabs**, log in as **Sreya** and **Sai**, and do one dry run.
+- [ ] Open **two tabs**. In each, choose **I already have an account**, then
+      sign in as **Sreya** / **demo-sreya** and **Sai** / **demo-sai**; do one
+      dry run.
 - [ ] Have a backup image ready to upload (any screenshot on your machine).
 
 > **If the app ever looks like it reset mid-demo,** that's just the free tier
-> restarting — the data reseeds to the pristine state automatically. Log in
-> again as Sreya/Sai and keep going. It never breaks the flow.
+> restarting — the data reseeds to the pristine state automatically. Choose
+> **I already have an account**, then sign in again as **Sreya** / **demo-sreya**
+> or **Sai** / **demo-sai** and keep going. It never breaks the flow.
 
 ---
 
