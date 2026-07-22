@@ -5,6 +5,7 @@ import type { Proof } from '../api/types'
 import { UploadDropzone } from '../components/UploadDropzone'
 import { ScreenState } from '../components/ScreenState'
 import { useToast } from '../components/toast-context'
+import { usePrivateProofUrl } from '../hooks/usePrivateProofUrl'
 import { MODULE_META, MODULE_ORDER } from '../lib/format'
 import type { RowKey } from '../lib/format'
 import './upload.css'
@@ -24,6 +25,12 @@ const STATUS_LINES = [
 ]
 
 const MIN_ANALYZE_MS = 1800
+
+function RecentProofThumbnail({ proof }: { proof: Proof }) {
+  const url = usePrivateProofUrl(proof.id)
+
+  return url ? <img src={url} alt={proof.summary || 'Proof'} loading="lazy" /> : null
+}
 
 export function Upload() {
   const navigate = useNavigate()
@@ -174,7 +181,7 @@ export function Upload() {
                   disabled={analyzing}
                   aria-label={`${p.summary || 'Proof'} — ${p.band} confidence`}
                 >
-                  <img src={p.url} alt={p.summary || 'Proof'} loading="lazy" />
+                  <RecentProofThumbnail proof={p} />
                   <span className="upload__thumb-band" />
                 </button>
               ))}

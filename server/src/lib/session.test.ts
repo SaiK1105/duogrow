@@ -13,7 +13,7 @@ test("hashSessionToken is deterministic and never returns the bearer token", () 
   assert.notEqual(hashSessionToken(token), token);
 });
 
-test("a user from another duo cannot fetch a proof file", async () => {
+test("a seeded-style hashed session authenticates but cannot fetch another duo's proof file", async () => {
   process.env.DATA_DIR = mkdtempSync(join(tmpdir(), "duogrow-session-test-"));
   const [{ db, UPLOADS_DIR }, { proofRoutes }] = await Promise.all([
     import("../db.js"),
@@ -28,17 +28,17 @@ test("a user from another duo cannot fetch a proof file", async () => {
   db.prepare(
     "INSERT INTO duos (id, name, invite_code, created_at) VALUES (?, ?, ?, ?)",
   ).run("duo-outsider", "Outsider duo", "outsider-code", "2026-01-01T00:00:00.000Z");
-  const outsiderToken = "outsider-token";
+  const outsiderToken = "demo-sreya";
   const outsiderTokenHash = hashSessionToken(outsiderToken);
   db.prepare(
     "INSERT INTO users (id, name, duo_id, session_token, session_token_hash, config_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-  ).run("user-outsider", "Outsider", "duo-outsider", outsiderTokenHash, outsiderTokenHash, "{}", "2026-01-01T00:00:00.000Z");
+  ).run("usr_demo_sreya", "Sreya", "duo-outsider", outsiderTokenHash, outsiderTokenHash, "{}", "2026-01-01T00:00:00.000Z");
   const filePath = join(UPLOADS_DIR, "foreign-proof.jpg");
   await writeFile(filePath, "not an image");
   db.prepare(
     `INSERT INTO proofs (id, user_id, duo_id, date, file_path, mime_type, ai_status, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run("proof-owner", "user-outsider", "duo-owner", "2026-01-01", filePath, "image/jpeg", "verified", "2026-01-01T00:00:00.000Z");
+  ).run("proof-owner", "usr_demo_sreya", "duo-owner", "2026-01-01", filePath, "image/jpeg", "verified", "2026-01-01T00:00:00.000Z");
 
   const app = new Hono();
   app.route("/api/proofs", proofRoutes);

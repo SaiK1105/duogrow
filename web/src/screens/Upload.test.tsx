@@ -17,6 +17,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 vi.mock('../api/client', () => ({
   api: {
     listProofs: vi.fn(),
+    proofFile: vi.fn(),
     uploadProof: vi.fn(),
   },
 }))
@@ -41,6 +42,7 @@ afterEach(() => {
 describe('Upload', () => {
   beforeEach(() => {
     mockedApi.listProofs.mockResolvedValue({ proofs: [] })
+    mockedApi.proofFile.mockResolvedValue(new Blob(['proof'], { type: 'image/jpeg' }))
   })
 
   it('keeps the recent-proofs recovery visible while a retry is pending', async () => {
@@ -150,5 +152,6 @@ describe('Upload', () => {
     renderUpload()
 
     expect(await screen.findByRole('button', { name: 'Morning run — high confidence' })).toBeVisible()
+    await waitFor(() => expect(mockedApi.proofFile).toHaveBeenCalledWith('proof-1'))
   })
 })

@@ -11,6 +11,7 @@
  */
 import { db } from "./db.js";
 import { newId } from "./lib/ids.js";
+import { hashSessionToken } from "./lib/session.js";
 import { lastNDays, timeToMinutes } from "./lib/dates.js";
 import { fnv1a, ensureTodayAssignments } from "./lib/potd.js";
 import { setStreak } from "./lib/streaks.js";
@@ -46,10 +47,12 @@ db.prepare(
 ).run(DUO_ID, "Sreya & Sai", INVITE_CODE, SREYA_ID, now);
 
 const insertUser = db.prepare(
-  `INSERT INTO users (id, name, duo_id, session_token, config_json, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+  `INSERT INTO users (id, name, duo_id, session_token, session_token_hash, config_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 );
-insertUser.run(SREYA_ID, "Sreya", DUO_ID, SREYA_TOKEN, JSON.stringify(DEFAULT_USER_CONFIG), now);
-insertUser.run(SAI_ID, "Sai", DUO_ID, SAI_TOKEN, JSON.stringify(DEFAULT_USER_CONFIG), now);
+const sreyaTokenHash = hashSessionToken(SREYA_TOKEN);
+const saiTokenHash = hashSessionToken(SAI_TOKEN);
+insertUser.run(SREYA_ID, "Sreya", DUO_ID, sreyaTokenHash, sreyaTokenHash, JSON.stringify(DEFAULT_USER_CONFIG), now);
+insertUser.run(SAI_ID, "Sai", DUO_ID, saiTokenHash, saiTokenHash, JSON.stringify(DEFAULT_USER_CONFIG), now);
 
 // --- Daily entries: 6 full prior days + today partially complete -----------
 
