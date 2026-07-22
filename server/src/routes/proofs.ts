@@ -1,6 +1,8 @@
 import { Hono } from "hono";
-import { writeFile } from "node:fs/promises";
-import { basename, extname, join } from "node:path";
+import { createReadStream } from "node:fs";
+import { realpath, stat, writeFile } from "node:fs/promises";
+import { extname, join, resolve, sep } from "node:path";
+import { Readable } from "node:stream";
 import { db, UPLOADS_DIR } from "../db.js";
 import { newId } from "../lib/ids.js";
 import { sessionAuth } from "../lib/authMiddleware.js";
@@ -62,7 +64,7 @@ function buildSummary(taskType: string, matchedModule: string | null, confidence
 function serializeProof(row: ProofRow) {
   return {
     id: row.id,
-    url: `/uploads/${basename(row.file_path)}`,
+    url: `/api/proofs/${row.id}/file`,
     module: row.target_module,
     aiStatus: row.ai_status,
     aiConfidence: row.ai_confidence,
@@ -172,6 +174,27 @@ proofRoutes.post("/:id/apply", (c) => {
 
   const updated = db.prepare<[string], ProofRow>(`SELECT * FROM proofs WHERE id = ?`).get(row.id)!;
   return c.json({ ok: true, proof: serializeProof(updated) });
+});
+
+proofRoutes.get("/:id/file", async (c) => {
+  const user = c.get("user");
+  const row = db.prepare<[string], ProofRow>(`SELECT * FROM proofs WHERE id = ?`).get(c.req.param("id"));
+  if (!row || row.duo_id !== user.duo_id) return c.json({ error: "proof not found" }, 404);
+
+  try {
+    const resolvedRoot = await realpath(resolve(UPLOADS_DIR));
+    const resolvedPath = await realpath(resolve(row.file_path));
+    if (resolvedPath === resolvedRoot || !resolvedPath.startsWith(resolvedRoot + sep)) {
+      return c.json({ error: "proof not found" }, 404);
+    }
+    const file = await stat(resolvedPath);
+    if (!file.isFile()) return c.json({ error: "proof not found" }, 404);
+
+    const stream = Readable.toWeb(createReadStream(resolvedPath)) as ReadableStream;
+    return new Response(stream, { headers: { "Content-Type": row.mime_type } });
+  } catch {
+    return c.json({ error: "proof not found" }, 404);
+  }
 });
 
 proofRoutes.get("/", (c) => {

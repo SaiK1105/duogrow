@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { hashSessionToken } from "./lib/session.js";
 
 export const DATA_DIR = process.env.DATA_DIR || join(homedir(), ".duogrow");
 export const UPLOADS_DIR = join(DATA_DIR, "uploads");
@@ -123,3 +124,21 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_potd_questions_duo ON potd_questions(duo_id);
   CREATE INDEX IF NOT EXISTS idx_cheers_to_user ON cheers(to_user_id, seen);
 `);
+
+const userColumns = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+if (!userColumns.some((column) => column.name === "session_token_hash")) {
+  db.exec("ALTER TABLE users ADD COLUMN session_token_hash TEXT");
+}
+
+const migrateSessions = db.transaction(() => {
+  const users = db
+    .prepare("SELECT id, session_token, session_token_hash FROM users")
+    .all() as { id: string; session_token: string; session_token_hash: string | null }[];
+  const update = db.prepare("UPDATE users SET session_token = ?, session_token_hash = ? WHERE id = ?");
+  for (const user of users) {
+    const tokenHash = user.session_token_hash || hashSessionToken(user.session_token);
+    update.run(tokenHash, tokenHash, user.id);
+  }
+});
+migrateSessions();
+db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_session_token_hash ON users(session_token_hash)");

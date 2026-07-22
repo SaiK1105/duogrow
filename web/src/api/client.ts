@@ -113,6 +113,12 @@ async function postForm<T>(path: string, form: FormData): Promise<T> {
   return handle<T>(res)
 }
 
+async function getBlob(path: string): Promise<Blob> {
+  const res = await fetch(BASE + path, { headers: authHeaders() })
+  if (!res.ok) await handle<never>(res)
+  return res.blob()
+}
+
 // ===== Typed endpoint wrappers =====
 export const api = {
   // auth / identity
@@ -142,6 +148,7 @@ export const api = {
   applyProof: (id: string) => post<ProofApplyResponse>(`/proofs/${id}/apply`, {}),
   listProofs: () => get<ProofListResponse>('/proofs'),
   getProof: (id: string) => get<ProofResponse>(`/proofs/${id}`),
+  proofFile: (id: string) => getBlob(`/proofs/${id}/file`),
 
   // potd
   potdToday: () => get<PotdTodayResponse>('/potd/today'),

@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import { db } from "../db.js";
 import { newId } from "../lib/ids.js";
 import { sessionAuth } from "../lib/authMiddleware.js";
+import { createSessionToken, hashSessionToken } from "../lib/session.js";
 import type { AppEnv } from "../honoEnv.js";
 import { DEFAULT_USER_CONFIG, type DuoRow, type UserRow } from "../types.js";
 
@@ -32,17 +33,18 @@ authRoutes.post("/register", async (c) => {
   if (!name) return c.json({ error: "name is required" }, 400);
 
   const existing = db.prepare<[string], UserRow>(`SELECT * FROM users WHERE name = ?`).get(name);
-  const token = newId("sess");
+  const token = createSessionToken();
+  const tokenHash = hashSessionToken(token);
 
   if (existing) {
-    db.prepare(`UPDATE users SET session_token = ? WHERE id = ?`).run(token, existing.id);
-    return c.json({ token, user: publicUser({ ...existing, session_token: token }) });
+    db.prepare(`UPDATE users SET session_token = ?, session_token_hash = ? WHERE id = ?`).run(tokenHash, tokenHash, existing.id);
+    return c.json({ token, user: publicUser({ ...existing, session_token: tokenHash, session_token_hash: tokenHash }) });
   }
 
   const id = newId("usr");
   db.prepare(
-    `INSERT INTO users (id, name, duo_id, session_token, config_json, created_at) VALUES (?, ?, NULL, ?, ?, ?)`,
-  ).run(id, name, token, JSON.stringify(DEFAULT_USER_CONFIG), new Date().toISOString());
+    `INSERT INTO users (id, name, duo_id, session_token, session_token_hash, config_json, created_at) VALUES (?, ?, NULL, ?, ?, ?, ?)`,
+  ).run(id, name, tokenHash, tokenHash, JSON.stringify(DEFAULT_USER_CONFIG), new Date().toISOString());
 
   return c.json({ token, user: { id, name, duoId: null } });
 });
@@ -54,9 +56,10 @@ authRoutes.post("/login", async (c) => {
   const existing = db.prepare<[string], UserRow>(`SELECT * FROM users WHERE name = ?`).get(name);
   if (!existing) return c.json({ error: "no user with that name — register first" }, 404);
 
-  const token = newId("sess");
-  db.prepare(`UPDATE users SET session_token = ? WHERE id = ?`).run(token, existing.id);
-  return c.json({ token, user: publicUser({ ...existing, session_token: token }) });
+  const token = createSessionToken();
+  const tokenHash = hashSessionToken(token);
+  db.prepare(`UPDATE users SET session_token = ?, session_token_hash = ? WHERE id = ?`).run(tokenHash, tokenHash, existing.id);
+  return c.json({ token, user: publicUser({ ...existing, session_token: tokenHash, session_token_hash: tokenHash }) });
 });
 
 authRoutes.get("/me", sessionAuth, (c) => {

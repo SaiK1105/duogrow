@@ -1,0 +1,50 @@
+import assert from "node:assert/strict";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+
+import { hashSessionToken } from "./session.js";
+
+test("hashSessionToken is deterministic and never returns the bearer token", () => {
+  const token = "a-bearer-token-that-must-not-be-persisted";
+
+  assert.equal(hashSessionToken(token), hashSessionToken(token));
+  assert.notEqual(hashSessionToken(token), token);
+});
+
+test("a user from another duo cannot fetch a proof file", async () => {
+  process.env.DATA_DIR = mkdtempSync(join(tmpdir(), "duogrow-session-test-"));
+  const [{ db, UPLOADS_DIR }, { proofRoutes }] = await Promise.all([
+    import("../db.js"),
+    import("../routes/proofs.js"),
+  ]);
+  const { writeFile } = await import("node:fs/promises");
+  const { Hono } = await import("hono");
+
+  db.prepare(
+    "INSERT INTO duos (id, name, invite_code, created_at) VALUES (?, ?, ?, ?)",
+  ).run("duo-owner", "Owner duo", "owner-code", "2026-01-01T00:00:00.000Z");
+  db.prepare(
+    "INSERT INTO duos (id, name, invite_code, created_at) VALUES (?, ?, ?, ?)",
+  ).run("duo-outsider", "Outsider duo", "outsider-code", "2026-01-01T00:00:00.000Z");
+  const outsiderToken = "outsider-token";
+  const outsiderTokenHash = hashSessionToken(outsiderToken);
+  db.prepare(
+    "INSERT INTO users (id, name, duo_id, session_token, session_token_hash, config_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  ).run("user-outsider", "Outsider", "duo-outsider", outsiderTokenHash, outsiderTokenHash, "{}", "2026-01-01T00:00:00.000Z");
+  const filePath = join(UPLOADS_DIR, "foreign-proof.jpg");
+  await writeFile(filePath, "not an image");
+  db.prepare(
+    `INSERT INTO proofs (id, user_id, duo_id, date, file_path, mime_type, ai_status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run("proof-owner", "user-outsider", "duo-owner", "2026-01-01", filePath, "image/jpeg", "verified", "2026-01-01T00:00:00.000Z");
+
+  const app = new Hono();
+  app.route("/api/proofs", proofRoutes);
+  const response = await app.request("http://localhost/api/proofs/proof-owner/file", {
+    headers: { "x-session": outsiderToken },
+  });
+
+  assert.equal(response.status, 404);
+});

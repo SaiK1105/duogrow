@@ -41,6 +41,7 @@ export interface UserRow {
   name: string;
   duo_id: string | null;
   session_token: string;
+  session_token_hash: string;
   config_json: string;
   created_at: string;
 }

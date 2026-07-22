@@ -8,6 +8,7 @@ import { EvidenceChecklist } from '../components/EvidenceChecklist'
 import { BackIcon } from '../components/icons'
 import { VerifiedStamp } from '../components/VerifiedStamp'
 import { useToast } from '../components/toast-context'
+import { usePrivateProofUrl } from '../hooks/usePrivateProofUrl'
 import './verify-result.css'
 
 const HEADLINE: Record<Band, string> = {
@@ -30,6 +31,7 @@ export function VerifyResult() {
   const [proof, setProof] = useState<Proof | null>(null)
   const [error, setError] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const proofUrl = usePrivateProofUrl(id)
 
   useEffect(() => {
     if (!id) return
@@ -80,7 +82,7 @@ export function VerifyResult() {
 
   return (
     <div className="verify" data-band={band}>
-      <div className="verify__ghost" aria-hidden="true" style={{ backgroundImage: `url(${proof.url})` }} />
+      <div className="verify__ghost" aria-hidden="true" style={proofUrl ? { backgroundImage: `url(${proofUrl})` } : undefined} />
 
       <header className="verify__header">
         <button type="button" className="verify__back" onClick={() => navigate(-1)} aria-label="Back">

@@ -1,11 +1,7 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { createReadStream, existsSync } from "node:fs";
-import { stat } from "node:fs/promises";
-import { basename, extname, join, resolve, sep } from "node:path";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { Readable } from "node:stream";
-import { UPLOADS_DIR } from "./db.js";
 import { isLiveMode } from "./lib/verifier.js";
 import type { AppEnv } from "./honoEnv.js";
 import { authRoutes } from "./routes/auth.js";
@@ -33,52 +29,11 @@ api.route("/report", reportRoutes);
 api.route("/health", healthRoutes);
 app.route("/api", api);
 
-function mimeFor(name: string): string {
-  switch (extname(name).toLowerCase()) {
-    case ".jpg":
-    case ".jpeg":
-      return "image/jpeg";
-    case ".png":
-      return "image/png";
-    case ".webp":
-      return "image/webp";
-    case ".pdf":
-      return "application/pdf";
-    default:
-      return "application/octet-stream";
-  }
-}
-
-// Streams uploaded proof files. The name is sanitized with basename() and
-// then re-verified against the resolved uploads root — defense in depth
-// against path traversal even if a raw ".."-style segment slips through.
-app.get("/uploads/:name", async (c) => {
-  const name = basename(c.req.param("name"));
-  if (!name || name === "." || name === "..") return c.json({ error: "not found" }, 404);
-
-  const filePath = join(UPLOADS_DIR, name);
-  const resolvedPath = resolve(filePath);
-  const resolvedRoot = resolve(UPLOADS_DIR);
-  if (resolvedPath !== resolvedRoot && !resolvedPath.startsWith(resolvedRoot + sep)) {
-    return c.json({ error: "not found" }, 404);
-  }
-
-  try {
-    const stats = await stat(resolvedPath);
-    if (!stats.isFile()) return c.json({ error: "not found" }, 404);
-  } catch {
-    return c.json({ error: "not found" }, 404);
-  }
-
-  const stream = Readable.toWeb(createReadStream(resolvedPath)) as ReadableStream;
-  return new Response(stream, { headers: { "Content-Type": mimeFor(resolvedPath) } });
-});
-
 // Production only: serve the built SPA from the same origin as the API, so the
 // frontend's relative `/api` calls need no CORS. Gated behind the `--serve-web`
 // flag (set by the `start` script, absent in `dev`) — in development Vite owns
 // the SPA on :5173 and proxies /api here, so the server must not serve static
-// files then. Registered AFTER /api and /uploads so those always win; the SPA
+// files then. Registered AFTER /api so those always win; the SPA
 // path is resolved absolutely from this module (cwd-independent), and HashRouter
 // means only `/` needs index.html — no history-rewrite rules.
 if (process.argv.includes("--serve-web")) {
