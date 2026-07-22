@@ -28,6 +28,8 @@ describe('AiCoachSheet', () => {
     expect(screen.getByText(/Insight Explain uses numeric insight signals/i)).toBeVisible()
     expect(screen.getByText(/POTD Tutor uses the current problem title, prompt, topic, and difficulty/i)).toBeVisible()
     expect(screen.getByText(/proof media is never shared/i)).toBeVisible()
+    expect(screen.getByText(/Ephemeral chat sends the message you enter to the coaching provider/i)).toBeVisible()
+    expect(screen.getByText(/Do not include sensitive personal information/i)).toBeVisible()
   })
 
   it('labels disabled AI as off rather than live coaching', () => {

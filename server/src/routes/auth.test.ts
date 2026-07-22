@@ -23,6 +23,26 @@ async function auth(path: "/register" | "/login", payload: Record<string, unknow
   });
 }
 
+async function streamedAuthWithoutContentLength(path: "/register" | "/login", chunks: Uint8Array[]): Promise<{ response: Response; cancelled: boolean }> {
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(chunk);
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+  const request = new Request(`http://localhost/api/auth${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body,
+    duplex: "half",
+  } as RequestInit);
+  assert.equal(request.headers.has("content-length"), false);
+  return { response: await app.request(request), cancelled };
+}
+
 test("registration and login require a secret and never return or persist it as plaintext", async () => {
   assert.equal((await auth("/register", { name: "Ada", secret: "short" })).status, 400);
 
@@ -90,6 +110,21 @@ test("credential endpoints reject oversized secret bytes and advertised JSON bef
   const oversizedPayload = await auth("/register", { name: "Advertised body", secret: "valid-size-secret" }, { "content-length": "1025" });
   assert.equal(oversizedPayload.status, 413);
   assert.equal((db.prepare("SELECT count(*) AS count FROM users WHERE name = ?").get("Advertised body") as { count: number }).count, 0);
+});
+
+test("credential endpoints cancel oversized streamed bodies without a Content-Length header", async () => {
+  const encoder = new TextEncoder();
+  const oversizedJson = JSON.stringify({ name: "Streamed body", secret: "x".repeat(1_100) });
+  const chunks = [encoder.encode(oversizedJson.slice(0, 512)), encoder.encode(oversizedJson.slice(512))];
+
+  const registration = await streamedAuthWithoutContentLength("/register", chunks);
+  assert.equal(registration.response.status, 413);
+  assert.equal(registration.cancelled, true);
+  assert.equal((db.prepare("SELECT count(*) AS count FROM users WHERE name = ?").get("Streamed body") as { count: number }).count, 0);
+
+  const login = await streamedAuthWithoutContentLength("/login", chunks);
+  assert.equal(login.response.status, 413);
+  assert.equal(login.cancelled, true);
 });
 
 test("repeated failed credential attempts are bounded per normalized name", async () => {

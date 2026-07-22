@@ -117,6 +117,7 @@ export function AiCoachSheet({ isOpen, settings, onClose, initialAction, client 
         <label className="ai-coach-sheet__label" htmlFor="ai-coach-message">Ask your coach</label>
         <textarea id="ai-coach-message" value={message} maxLength={MAX_CHAT_CHARS} onChange={(event) => setMessage(event.target.value)} aria-describedby="ai-coach-counter" />
         <p id="ai-coach-counter" className="ai-coach-sheet__counter">{message.length}/{MAX_CHAT_CHARS}</p>
+        <p className="ai-coach-sheet__note">Ephemeral chat sends the message you enter to the coaching provider and is not saved by DuoGrow. Do not include sensitive personal information.</p>
         <button className="btn btn--primary" type="button" disabled={pending} onClick={sendChat}>Send message</button>
         {pending && <p role="status" aria-live="polite">Coaching is thinking…</p>}
         {error && <><p role={error.startsWith('Enable') ? 'status' : 'alert'} aria-live="polite" className="ai-coach-sheet__error">{error}</p>{retry && !error.startsWith('Enable') && <button className="btn btn--outline" type="button" onClick={retry}>Retry</button>}</>}

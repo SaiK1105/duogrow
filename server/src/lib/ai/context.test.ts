@@ -41,7 +41,8 @@ test("Insight Explain sends only numeric signals even when its narrative source 
   const insight = buildInsightsExplainContext({
     growthScore: 82,
     subscores: { discipline: 80, mind: 82, health: 70, consistency: 90, private: 999 },
-    prediction: { behavior: "remind Sai to start", riskPercent: 40, reason: "Sreya missed two late starts", forUser: "Ada", proof_id: "proof-1" },
+    riskPercent: 40,
+    prediction: { behavior: "remind Sai to start", riskPercent: 99, reason: "Sreya missed two late starts", forUser: "Ada", proof_id: "proof-1" },
     suggestion: "Ask Sai to start early", strength: "Sreya has consistent wakeups", weeklyVerdict: "Sreya and Sai had a solid week",
     proof: { file_path: "/private.jpg" }, userId: "user-1",
   });

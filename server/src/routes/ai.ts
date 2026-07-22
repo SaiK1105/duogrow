@@ -6,14 +6,12 @@ import { sessionAuth } from "../lib/authMiddleware.js";
 import { today, lastNDays } from "../lib/dates.js";
 import { computeDuoGrowth, computeUserWeekStats } from "../lib/weeklyStats.js";
 import { getStreak } from "../lib/streaks.js";
-import { getVerifier } from "../lib/verifier.js";
 import { buildDuoReflectionContext, buildInsightsExplainContext, buildPersonalAiContext, buildPotdTutorContext, type PersonalAiContextInput } from "../lib/ai/context.js";
 import { AiLimitError, reserveAiRequest } from "../lib/ai/limits.js";
 import { deleteAiData, getAiSettings, hasDuoReflectionConsent, recordAiAuditEvent, updateAiPreferences } from "../lib/ai/policy.js";
 import { OpenAiProvider } from "../lib/ai/openAiProvider.js";
 import type { AiFeature, UserRow } from "../types.js";
 import type { AiProvider } from "../lib/ai/provider.js";
-import type { WeeklyStats } from "../lib/verifierTypes.js";
 
 const POLICY_VERSION = "1";
 const ESTIMATED_COST_CENTS = 1;
@@ -122,8 +120,7 @@ async function insightSource(user: UserRow): Promise<Record<string, unknown>> {
   if (!user.duo_id) {
     return {
       growthScore: 0, subscores: { discipline: 0, mind: 0, health: 0, consistency: 0 },
-      prediction: { behavior: "get started", riskPercent: 0, reason: "No duo yet." },
-      suggestion: "Create or join a duo to start tracking together.", strength: "You're set up and ready to go.", weeklyVerdict: "No data yet — this week is a blank canvas.",
+      riskPercent: 0,
     };
   }
   const days = lastNDays(7, today());
@@ -131,12 +128,28 @@ async function insightSource(user: UserRow): Promise<Record<string, unknown>> {
   const members = partner ? [user, partner] : [user];
   const streak = getStreak(user.duo_id);
   const { growthScore, subscores } = computeDuoGrowth(user.duo_id, members, streak.current_streak, days);
-  const stats: WeeklyStats = {
-    days, you: computeUserWeekStats(user, days), partner: partner ? computeUserWeekStats(partner, days) : null,
-    streak: streak.current_streak, growthScore, subscores,
-  };
-  const narrative = await getVerifier().insights(stats);
-  return { growthScore, subscores, prediction: narrative.prediction, suggestion: narrative.suggestion, strength: narrative.strength, weeklyVerdict: narrative.weeklyVerdict };
+  const weeklyStats = [computeUserWeekStats(user, days), ...(partner ? [computeUserWeekStats(partner, days)] : [])];
+  return { growthScore, subscores, riskPercent: calculateInsightRisk(weeklyStats) };
+}
+
+/** A local numeric signal only; Insight Explain never needs a verifier narrative. */
+function calculateInsightRisk(weeks: Array<{
+  wakeRate: number;
+  tasksRate: number;
+  workoutRate: number;
+  dietOnTargetRate: number;
+  studyRate: number;
+  todayWorkoutDone: boolean;
+  todayTasksRatio: number;
+}>): number {
+  if (weeks.length === 0) return 0;
+  const highestRisk = Math.max(...weeks.map((week) => {
+    const completionAverage = (week.wakeRate + week.tasksRate + week.workoutRate + week.dietOnTargetRate + week.studyRate) / 5;
+    const workoutPenalty = week.todayWorkoutDone ? 0 : 15;
+    const taskPenalty = week.todayTasksRatio < 0.5 ? 10 : 0;
+    return Math.round((1 - completionAverage) * 60 + workoutPenalty + taskPenalty);
+  }));
+  return Math.max(35, Math.min(90, highestRisk));
 }
 
 function potdTutorSource(user: UserRow): Record<string, unknown> | null {

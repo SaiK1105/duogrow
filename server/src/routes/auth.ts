@@ -5,6 +5,7 @@ import { sessionAuth } from "../lib/authMiddleware.js";
 import { createSessionToken, hashSessionToken } from "../lib/session.js";
 import { hashCredential, MAX_SECRET_BYTES, MIN_SECRET_LENGTH, verifyCredential } from "../lib/credentials.js";
 import { credentialAttemptLimiter } from "../lib/authAttemptLimiter.js";
+import { readBoundedRequestBody } from "../lib/boundedRequestBody.js";
 import type { AppEnv } from "../honoEnv.js";
 import { DEFAULT_USER_CONFIG, type DuoRow, type UserRow } from "../types.js";
 
@@ -25,15 +26,20 @@ export function findDuoWithMembers(duoId: string): { id: string; name: string; i
 }
 
 async function readCredentials(c: Context<AppEnv>): Promise<{ name: string; secret: string } | null> {
-  const contentLength = c.req.header("content-length");
-  if (contentLength !== undefined) {
-    const bytes = Number(contentLength);
-    if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > MAX_AUTH_JSON_BYTES) return null;
-  }
-  const body = await c.req.json().catch(() => null);
+  const rawBody = await readBoundedRequestBody(c.req.raw, MAX_AUTH_JSON_BYTES);
+  if (!rawBody.ok) return null;
+  const body = parseJson(rawBody.text);
   const name = body && typeof body === "object" && "name" in body ? (body as { name: unknown }).name : undefined;
   const secret = body && typeof body === "object" && "secret" in body ? (body as { secret: unknown }).secret : undefined;
   return { name: typeof name === "string" ? name.trim() : "", secret: typeof secret === "string" ? secret : "" };
+}
+
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return null;
+  }
 }
 
 function normalizeName(name: string): string {

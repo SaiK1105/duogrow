@@ -75,7 +75,9 @@ contains prompts, replies, proof data, or a raw user/duo ID.
 
 Chat prompts and replies are ephemeral in DuoGrow: the application does not
 persist chat transcripts or prompts. It keeps only the AI settings, usage
-counters, and audit metadata needed for consent and limits.
+counters, and audit metadata needed for consent and limits. A chat request
+sends the message the person enters to the coaching provider, so the UI tells
+people not to include sensitive personal information.
 
 ## Coaching data boundary and retention
 
@@ -93,17 +95,20 @@ session bearers to OpenAI.
 ## Account credentials
 
 Registration and login require a user-chosen secret of at least eight
-characters and no more than 256 UTF-8 bytes. Both endpoints reject an
-oversized advertised JSON body before parsing when `Content-Length` is
-available, then enforce the secret bound before a database lookup or hash. A
-small, bounded in-memory limiter caps repeated eligible attempts per normalized
-name; it stores neither secrets nor credential values. DuoGrow salts and hashes
-the secret with Node's asynchronous `scrypt` before storage and uses
-constant-time comparison for login; plaintext secrets are neither stored nor
-returned. A duplicate display name cannot mint a session, and legacy rows
-without a credential cannot be logged into by name alone. Existing sessions
-remain valid. The deterministic seed's public sign-ins (`Sreya` / `demo-sreya`
-and `Sai` / `demo-sai`) are demo-only credentials, not production accounts.
+characters and no more than 256 UTF-8 bytes. Both endpoints use the same
+bounded raw body reader: `Content-Length` is an early rejection when available,
+and chunked or absent-header bodies are counted and cancelled before JSON
+parsing at the same 1,024-byte ceiling. They then enforce the secret bound
+before a database lookup or hash. A small, bounded in-memory limiter caps
+repeated eligible attempts per normalized name; it stores neither secrets nor
+credential values, prunes only expired windows, and denies new names while its
+active capacity is full. DuoGrow salts and hashes the secret with Node's
+asynchronous `scrypt` before storage and uses constant-time comparison for
+login; plaintext secrets are neither stored nor returned. A duplicate display
+name cannot mint a session, and legacy rows without a credential cannot be
+logged into by name alone. Existing sessions remain valid. The deterministic
+seed's public sign-ins (`Sreya` / `demo-sreya` and `Sai` / `demo-sai`) are
+demo-only credentials, not production accounts.
 
 `store: false` asks the Responses API not to store the response through that
 parameter. It is not a claim of Zero Data Retention. Provider retention,

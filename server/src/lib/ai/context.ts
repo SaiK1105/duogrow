@@ -80,13 +80,12 @@ export function buildDuoReflectionContext(input: DuoReflectionContextInput): Duo
 /** Sends only numeric growth signals to Insight Explain, never a verifier narrative or an identifier. */
 export function buildInsightsExplainContext(input: Record<string, unknown>): InsightsExplainContext {
   const subscores = input.subscores && typeof input.subscores === "object" ? input.subscores as Record<string, unknown> : {};
-  const prediction = input.prediction && typeof input.prediction === "object" ? input.prediction as Record<string, unknown> : {};
   return {
     growthScore: finiteNumber(input.growthScore),
     subscores: {
       discipline: finiteNumber(subscores.discipline), mind: finiteNumber(subscores.mind), health: finiteNumber(subscores.health), consistency: finiteNumber(subscores.consistency),
     },
-    riskPercent: finiteNumber(prediction.riskPercent),
+    riskPercent: finiteNumber(input.riskPercent),
   };
 }
 

@@ -114,6 +114,30 @@ test("a personal consent revocation while any generation context is pending prev
   assert.equal((db.prepare("SELECT COALESCE(SUM(request_count), 0) AS count FROM ai_quota_daily WHERE subject_hash = ?").get(quotaSubject("user-personal-race")) as { count: number }).count, before.count);
 });
 
+test("a revoked delayed Insight Explain request does not dispatch a provider or carry names and IDs", async () => {
+  insertUser("user-insight-race", "token-insight-race", null);
+  enablePersonal("user-insight-race");
+  let startContext: (() => void) | undefined;
+  let releaseContext: ((value: ReturnType<typeof import("../lib/ai/context.js").buildInsightsExplainContext>) => void) | undefined;
+  const contextStarted = new Promise<void>((resolve) => { startContext = resolve; });
+  const pendingContext = new Promise<ReturnType<typeof import("../lib/ai/context.js").buildInsightsExplainContext>>((resolve) => { releaseContext = resolve; });
+  let providerCalls = 0;
+  const raceApp = new Hono();
+  raceApp.route("/api/ai", createAiRoutes({
+    buildContext: () => { startContext?.(); return pendingContext; },
+    provider: { generate: async () => { providerCalls += 1; return { text: "must not run", mode: "demo" }; } },
+  }));
+  const explanation = raceApp.request("http://localhost/api/ai/insights-explain", { method: "POST", headers: headers("token-insight-race") });
+  await contextStarted;
+  assert.equal((await request("/settings", "token-insight-race", "PUT", { personalEnabled: false, duoEnabled: false })).status, 200);
+  const context = { growthScore: 82, subscores: { discipline: 80, mind: 82, health: 70, consistency: 90 }, riskPercent: 40 };
+  releaseContext?.(context);
+
+  assert.equal((await explanation).status, 403);
+  assert.equal(providerCalls, 0);
+  assert.doesNotMatch(JSON.stringify(context), /user-insight-race|token-insight-race|name|id/i);
+});
+
 test("daily plan returns a labelled demo response", async () => {
   insertUser("user-demo", "token-demo");
   enablePersonal("user-demo");
