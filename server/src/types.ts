@@ -8,6 +8,16 @@ export const MODULE_NAMES: ModuleName[] = ["wake", "study", "workout", "diet", "
 export type EntryStatus = "pending" | "done";
 export type ProofBand = "high" | "medium" | "low";
 export type AiStatus = "pending" | "verified" | "review" | "rejected" | "error";
+export type AiFeature = "daily_plan" | "duo_reflection" | "potd_tutor" | "chat";
+export type AiMode = "live" | "demo" | "disabled";
+
+export interface AiSettings {
+  personalEnabled: boolean;
+  duoEnabled: boolean;
+  policyVersion: string;
+  mode: AiMode;
+  usage: Record<AiFeature, { remaining: number; estimatedCostCents: number }>;
+}
 export type PotdStatus = "assigned" | "attempted" | "solved";
 export type Difficulty = "easy" | "medium" | "hard";
 
