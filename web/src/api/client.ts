@@ -1,5 +1,8 @@
 import type {
   AuthResponse,
+  AiDuoConsentResponse,
+  AiGenerationResponse,
+  AiSettingsResponse,
   DuoResponse,
   HealthResponse,
   InsightsResponse,
@@ -113,6 +116,11 @@ async function postForm<T>(path: string, form: FormData): Promise<T> {
   return handle<T>(res)
 }
 
+async function del(path: string): Promise<void> {
+  const res = await fetch(BASE + path, { method: 'DELETE', headers: authHeaders() })
+  if (!res.ok) await handle<never>(res)
+}
+
 async function getBlob(path: string): Promise<Blob> {
   const res = await fetch(BASE + path, { headers: authHeaders() })
   if (!res.ok) await handle<never>(res)
@@ -167,6 +175,17 @@ export const api = {
   // insights / report
   insights: () => get<InsightsResponse>('/insights'),
   weeklyReport: () => get<WeeklyReport>('/report/weekly'),
+
+  // AI coaching — never accepts provider keys; requests use the session header only.
+  aiSettings: () => get<AiSettingsResponse>('/ai/settings'),
+  updateAiSettings: (settings: Pick<AiSettingsResponse, 'personalEnabled' | 'duoEnabled'>) =>
+    put<AiSettingsResponse>('/ai/settings', settings),
+  updateAiDuoConsent: (enabled: boolean) => put<AiDuoConsentResponse>('/ai/duo-consent', { enabled }),
+  deleteAiData: () => del('/ai/data'),
+  dailyPlan: () => post<AiGenerationResponse>('/ai/daily-plan'),
+  duoReflection: () => post<AiGenerationResponse>('/ai/duo-reflection'),
+  potdTutor: () => post<AiGenerationResponse>('/ai/potd-tutor'),
+  chat: (message: string) => post<AiGenerationResponse>('/ai/chat', { message }),
 
   // health
   health: () => get<HealthResponse>('/health'),

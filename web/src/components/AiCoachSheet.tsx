@@ -1,0 +1,115 @@
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { api, ApiError } from '../api/client'
+import type { AiGenerationResponse, AiSettings } from '../api/types'
+import './ai-coach-sheet.css'
+
+type CoachClient = Pick<typeof api, 'dailyPlan' | 'duoReflection' | 'potdTutor' | 'chat'>
+
+interface AiCoachSheetProps {
+  isOpen: boolean
+  settings: AiSettings
+  onClose: () => void
+  client?: Partial<CoachClient>
+}
+
+const FOCUSABLE_SELECTOR = 'button:not([disabled]), textarea:not([disabled])'
+const MAX_CHAT_CHARS = 500
+
+export function AiCoachSheet({ isOpen, settings, onClose, client = {} }: AiCoachSheetProps) {
+  const dialogRef = useRef<HTMLElement>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
+  const [message, setMessage] = useState('')
+  const [response, setResponse] = useState<AiGenerationResponse | null>(null)
+  const [error, setError] = useState('')
+  const [pending, setPending] = useState(false)
+  const [retry, setRetry] = useState<(() => void) | null>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setResponse(null)
+    setError('')
+    setRetry(null)
+    queueMicrotask(() => dialogRef.current?.querySelector<HTMLElement>('button')?.focus())
+    return () => returnFocusRef.current?.focus()
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const appRoot = document.getElementById('root')
+    if (!appRoot) return
+    const wasInert = appRoot.inert
+    appRoot.inert = true
+    return () => { appRoot.inert = wasInert }
+  }, [isOpen])
+
+  if (!isOpen) return null
+
+  const request = async (action: () => Promise<AiGenerationResponse>) => {
+    if (!settings.personalEnabled) {
+      setError('Enable personal AI consent in Privacy controls before requesting coaching.')
+      return
+    }
+    setPending(true)
+    setError('')
+    setRetry(() => () => { void request(action) })
+    try {
+      setResponse(await action())
+    } catch (caught) {
+      const status = caught instanceof ApiError ? caught.status : typeof caught === 'object' && caught !== null && 'status' in caught ? Number(caught.status) : 0
+      const message = caught instanceof Error ? caught.message : ''
+      setError(
+        status === 429
+          ? 'Your daily AI budget has been reached. Try again tomorrow.'
+          : message.includes('mutual duo consent')
+            ? 'Duo Reflection needs both partners consent before it can run.'
+            : 'Coaching is unavailable right now. Please retry.',
+      )
+    } finally {
+      setPending(false)
+    }
+  }
+
+  const trapFocus = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
+    if (event.key !== 'Tab') return
+    const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])
+    const first = focusable[0]
+    const last = focusable.at(-1)
+    if (!first || !last) return
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+  }
+
+  const sendChat = () => {
+    if (message.length > MAX_CHAT_CHARS) { setError('Use 500 characters or fewer for a chat message.'); return }
+    if (!message.trim()) { setError('Write a message before sending.'); return }
+    void request(() => (client.chat ?? api.chat)(message.trim()))
+  }
+
+  return createPortal(
+    <div className="ai-coach-sheet__backdrop" onClick={(event) => { if (event.target === event.currentTarget) onClose() }} onKeyDown={trapFocus}>
+      <section ref={dialogRef} className="ai-coach-sheet" role="dialog" aria-modal="true" aria-labelledby="ai-coach-sheet-title" aria-describedby="ai-coach-sheet-description">
+        <div className="ai-coach-sheet__header">
+          <div><p className="ai-coach-sheet__eyebrow">Private, optional support</p><h2 id="ai-coach-sheet-title">DuoGrow AI coach</h2></div>
+          <button className="btn btn--ghost btn--sm" type="button" onClick={onClose} aria-label="Close AI coach">Close</button>
+        </div>
+        <p id="ai-coach-sheet-description">Coaching receives aggregate progress and goals only. Proof media is never shared.</p>
+        <p className="ai-coach-sheet__mode">{settings.mode === 'demo' ? 'Demo coaching' : 'Live coaching'} · daily budget applies</p>
+        <div className="ai-coach-sheet__actions" aria-label="Coaching tools">
+          <button className="btn btn--outline" type="button" disabled={pending} onClick={() => void request(client.dailyPlan ?? api.dailyPlan)}>Create daily plan</button>
+          <button className="btn btn--outline" type="button" disabled={pending || !settings.duoEnabled} onClick={() => void request(client.duoReflection ?? api.duoReflection)}>Duo reflection</button>
+          <button className="btn btn--outline" type="button" disabled={pending} onClick={() => void request(client.potdTutor ?? api.potdTutor)}>POTD tutor</button>
+        </div>
+        <label className="ai-coach-sheet__label" htmlFor="ai-coach-message">Ask your coach</label>
+        <textarea id="ai-coach-message" value={message} maxLength={MAX_CHAT_CHARS + 1} onChange={(event) => setMessage(event.target.value)} aria-describedby="ai-coach-counter" />
+        <p id="ai-coach-counter" className="ai-coach-sheet__counter">{message.length}/{MAX_CHAT_CHARS}</p>
+        <button className="btn btn--primary" type="button" disabled={pending} onClick={sendChat}>Send message</button>
+        {pending && <p role="status" aria-live="polite">Coaching is thinking…</p>}
+        {error && <><p role={error.startsWith('Enable') ? 'status' : 'alert'} aria-live="polite" className="ai-coach-sheet__error">{error}</p>{retry && !error.startsWith('Enable') && <button className="btn btn--outline" type="button" onClick={retry}>Retry</button>}</>}
+        {response && <div className="ai-coach-sheet__response" aria-live="polite"><p role="status">{response.mode === 'demo' ? 'Demo coaching' : 'Live coaching'} response ready</p><p>{response.text}</p><p>{response.remaining} request{response.remaining === 1 ? '' : 's'} remaining today</p></div>}
+      </section>
+    </div>, document.body,
+  )
+}

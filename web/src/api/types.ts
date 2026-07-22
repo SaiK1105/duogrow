@@ -5,6 +5,8 @@ export type ModuleStatus = 'pending' | 'done'
 export type Band = 'high' | 'medium' | 'low'
 export type AiStatus = 'pending' | 'verified' | 'review' | 'rejected' | 'error'
 export type Difficulty = 'easy' | 'medium' | 'hard'
+export type AiFeature = 'daily_plan' | 'duo_reflection' | 'potd_tutor' | 'chat'
+export type AiMode = 'live' | 'demo' | 'disabled'
 
 // ----- Auth / identity -----
 export interface User {
@@ -164,6 +166,34 @@ export interface PotdUploadResponse {
 // ----- Cheers -----
 export interface OkResponse {
   ok: boolean
+}
+
+// ----- AI coaching -----
+export interface AiUsage {
+  remaining: number
+  estimatedCostCents: number
+}
+
+export interface AiSettings {
+  personalEnabled: boolean
+  duoEnabled: boolean
+  policyVersion: string
+  mode: AiMode
+  usage: Record<AiFeature, AiUsage>
+}
+
+export interface AiSettingsResponse extends AiSettings {}
+
+export interface AiDuoConsentResponse {
+  enabled: boolean
+  mutual: boolean
+}
+
+export interface AiGenerationResponse {
+  text: string
+  mode: Exclude<AiMode, 'disabled'>
+  remaining: number
+  estimatedCostCents: number
 }
 
 // ----- Insights -----
