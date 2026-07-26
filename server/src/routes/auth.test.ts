@@ -142,15 +142,15 @@ test("credential capacity churn does not block a new correct registration or log
   const loginSecret = "capacity-login-secret";
   assert.equal((await auth("/register", { name: protectedName, secret: protectedSecret })).status, 200);
   assert.equal((await auth("/register", { name: loginName, secret: loginSecret })).status, 200);
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    assert.equal((await auth("/login", { name: protectedName, secret: `wrong-capacity-secret-${attempt}` })).status, 401);
-  }
-  assert.equal((await auth("/login", { name: protectedName, secret: protectedSecret })).status, 429);
 
   for (let attempt = 0; attempt < 2_005; attempt += 1) {
     assert.equal((await auth("/login", { name: `Unknown capacity ${attempt}`, secret: "unknown-capacity-secret" })).status, 401);
   }
 
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    assert.equal((await auth("/login", { name: protectedName, secret: `wrong-capacity-secret-${attempt}` })).status, 401);
+  }
+  assert.equal((await auth("/login", { name: protectedName, secret: "wrong-capacity-secret-final" })).status, 429);
   assert.equal((await auth("/register", { name: "Capacity admitted", secret: "capacity-admitted-secret" })).status, 200);
   assert.equal((await auth("/login", { name: loginName, secret: loginSecret })).status, 200);
   assert.equal((await auth("/login", { name: protectedName, secret: protectedSecret })).status, 429);

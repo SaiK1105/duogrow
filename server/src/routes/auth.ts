@@ -61,8 +61,6 @@ authRoutes.post("/register", async (c) => {
   const invalid = credentialsError(c, name, secret);
   if (invalid) return invalid;
   const normalizedName = normalizeName(name);
-  if (!credentialAttemptLimiter.allow(normalizedName)) return c.json({ error: "too many credential attempts; try again shortly" }, 429);
-
   const existing = db.prepare<[string, string], UserRow>(`SELECT * FROM users WHERE name_normalized = ? OR (name_normalized IS NULL AND name = ? COLLATE NOCASE)`).get(normalizedName, name);
   if (existing) return c.json({ error: "an account with that name already exists — sign in instead" }, 409);
   const token = createSessionToken();
@@ -92,12 +90,12 @@ authRoutes.post("/login", async (c) => {
   const invalid = credentialsError(c, name, secret);
   if (invalid) return invalid;
   const normalizedName = normalizeName(name);
-  if (!credentialAttemptLimiter.allow(normalizedName)) return c.json({ error: "too many credential attempts; try again shortly" }, 429);
-
   const existing = db.prepare<[string], UserRow>(`SELECT * FROM users WHERE name_normalized = ? AND credential_hash IS NOT NULL`).get(normalizedName);
-  if (!existing || !await verifyCredential(secret, existing.credential_salt, existing.credential_hash)) {
+  if (!existing) {
     return c.json({ error: "invalid name or secret" }, 401);
   }
+  if (!credentialAttemptLimiter.allow(normalizedName)) return c.json({ error: "too many credential attempts; try again shortly" }, 429);
+  if (!await verifyCredential(secret, existing.credential_salt, existing.credential_hash)) return c.json({ error: "invalid name or secret" }, 401);
 
   const token = createSessionToken();
   const tokenHash = hashSessionToken(token);
