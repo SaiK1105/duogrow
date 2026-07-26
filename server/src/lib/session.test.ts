@@ -73,4 +73,33 @@ test("authenticated proof bytes are explicitly private and vary by session", asy
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("cache-control"), "private, no-store");
   assert.equal(response.headers.get("vary"), "x-session");
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(response.headers.get("content-disposition"), null);
+});
+
+test("PDF proof bytes are served as a nosniff attachment", async () => {
+  process.env.DATA_DIR = mkdtempSync(join(tmpdir(), "duogrow-proof-pdf-test-"));
+  const [{ db, UPLOADS_DIR }, { proofRoutes }, { hashSessionToken: hashToken }, { writeFile }, { Hono }] = await Promise.all([
+    import("../db.js"),
+    import("../routes/proofs.js"),
+    import("./session.js"),
+    import("node:fs/promises"),
+    import("hono"),
+  ]);
+  const token = "owner-pdf-token";
+  db.prepare("INSERT INTO duos (id, name, invite_code, created_at) VALUES (?, ?, ?, ?)").run("duo-pdf", "PDF", "pdf-code", "2026-01-01");
+  db.prepare("INSERT INTO users (id, name, duo_id, session_token, session_token_hash, config_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .run("pdf-owner", "Owner", "duo-pdf", hashToken(token), hashToken(token), "{}", "2026-01-01");
+  const filePath = join(UPLOADS_DIR, "private-proof.pdf");
+  await writeFile(filePath, "private PDF");
+  db.prepare("INSERT INTO proofs (id, user_id, duo_id, date, file_path, mime_type, ai_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .run("pdf-proof", "pdf-owner", "duo-pdf", "2026-01-01", filePath, "application/pdf", "verified", "2026-01-01");
+  const app = new Hono();
+  app.route("/api/proofs", proofRoutes);
+  const response = await app.request("http://localhost/api/proofs/pdf-proof/file", { headers: { "x-session": token } });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "application/pdf");
+  assert.equal(response.headers.get("content-disposition"), 'attachment; filename="proof.pdf"');
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
 });
