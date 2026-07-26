@@ -1,6 +1,8 @@
 import type {
   AuthResponse,
   AiGenerationResponse,
+  AiLimitReason,
+  AiLimitRetry,
   AiSettingsResponse,
   DuoResponse,
   HealthResponse,
@@ -24,10 +26,14 @@ const BASE = '/api'
 
 export class ApiError extends Error {
   status: number
-  constructor(message: string, status: number) {
+  reason?: AiLimitReason
+  retry?: AiLimitRetry
+  constructor(message: string, status: number, limit?: { reason: AiLimitReason; retry: AiLimitRetry }) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.reason = limit?.reason
+    this.retry = limit?.retry
   }
 }
 
@@ -74,7 +80,7 @@ async function handle<T>(res: Response): Promise<T> {
       body && typeof body === 'object' && 'error' in body
         ? String((body as { error: unknown }).error)
         : `Request failed (${res.status})`
-    throw new ApiError(message, res.status)
+    throw new ApiError(message, res.status, readAiLimit(body))
   }
 
   return body as T
@@ -113,6 +119,21 @@ async function postForm<T>(path: string, form: FormData): Promise<T> {
     body: form,
   })
   return handle<T>(res)
+}
+
+function readAiLimit(body: unknown): { reason: AiLimitReason; retry: AiLimitRetry } | undefined {
+  if (!body || typeof body !== 'object' || !('reason' in body) || !('retry' in body)) return undefined
+  const { reason, retry } = body
+  if (!isAiLimitReason(reason) || !isAiLimitRetry(retry)) return undefined
+  return { reason, retry }
+}
+
+function isAiLimitReason(value: unknown): value is AiLimitReason {
+  return value === 'feature_quota' || value === 'daily_budget' || value === 'monthly_budget'
+}
+
+function isAiLimitRetry(value: unknown): value is AiLimitRetry {
+  return value === 'tomorrow' || value === 'next_week' || value === 'next_month'
 }
 
 async function del(path: string): Promise<void> {

@@ -56,7 +56,7 @@ test("deleting AI data retains all non-AI user data and the pseudonymous quota d
   assert.equal((db.prepare("SELECT count(*) AS count FROM ai_audit_events WHERE actor_user_id = ?").get("user-1") as { count: number }).count, 0);
 });
 
-test("AI settings report configured feature quotas without reading global environment", () => {
+test("AI settings report configured usable request counts without reading global environment", () => {
   const settings = getAiSettings("user-configured-settings", "2026-01-01", getAiRuntimeConfig({
     AI_DAILY_CALLS_PER_USER: "2",
     AI_TUTOR_CALLS_PER_USER: "3",
@@ -65,11 +65,11 @@ test("AI settings report configured feature quotas without reading global enviro
   }));
 
   assert.deepEqual(settings.usage, {
-    daily_plan: { remaining: 2, estimatedCostCents: 0 },
-    duo_reflection: { remaining: 5, estimatedCostCents: 0 },
-    potd_tutor: { remaining: 3, estimatedCostCents: 0 },
-    chat: { remaining: 4, estimatedCostCents: 0 },
-    insights_explain: { remaining: 2, estimatedCostCents: 0 },
+    daily_plan: { remaining: 2, estimatedCostCents: 1 },
+    duo_reflection: { remaining: 3, estimatedCostCents: 1 },
+    potd_tutor: { remaining: 3, estimatedCostCents: 1 },
+    chat: { remaining: 3, estimatedCostCents: 1 },
+    insights_explain: { remaining: 2, estimatedCostCents: 1 },
   });
   assert.equal(settings.dailyBudgetRemainingCents, 3);
 });
@@ -85,7 +85,7 @@ test("AI settings report the current shared daily cent balance separately from f
   const settings = getAiSettings(userId, date, getAiRuntimeConfig({ AI_USER_DAILY_BUDGET_CENTS: "3", AI_CHAT_CALLS_PER_USER: "10" }));
 
   assert.equal(settings.dailyBudgetRemainingCents, 1);
-  assert.equal(settings.usage.chat.remaining, 8);
+  assert.equal(settings.usage.chat.remaining, 1);
 });
 
 test("AI settings derive the coaching mode from current provider availability instead of a saved preference", () => {

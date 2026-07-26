@@ -9,13 +9,12 @@ import { getStreak } from "../lib/streaks.js";
 import { readBoundedRequestBody } from "../lib/boundedRequestBody.js";
 import { buildDuoReflectionContext, buildInsightsExplainContext, buildPersonalAiContext, buildPotdTutorContext, type PersonalAiContextInput } from "../lib/ai/context.js";
 import { AiLimitError, reserveAiRequest } from "../lib/ai/limits.js";
-import { deleteAiData, getAiSettings, hasDuoReflectionConsent, recordAiAuditEvent, updateAiPreferences } from "../lib/ai/policy.js";
+import { deleteAiData, ESTIMATED_AI_REQUEST_COST_CENTS, getAiSettings, hasDuoReflectionConsent, recordAiAuditEvent, updateAiPreferences } from "../lib/ai/policy.js";
 import { OpenAiProvider } from "../lib/ai/openAiProvider.js";
-import type { AiFeature, UserRow } from "../types.js";
+import type { AiFeature, AiLimitReason, AiLimitRetry, UserRow } from "../types.js";
 import type { AiProvider } from "../lib/ai/provider.js";
 
 const POLICY_VERSION = "1";
-const ESTIMATED_COST_CENTS = 1;
 const MAX_CHAT_CHARS = 500;
 const MAX_SETTINGS_JSON_BYTES = 256;
 const MAX_CHAT_JSON_BYTES = 4 * 1_024;
@@ -85,7 +84,7 @@ async function generate(c: Context<AppEnv>, feature: AiFeature, userMessage: str
   }
 
   try {
-    const reservation = reserveAiRequest({ actorUserId: user.id, duoId, feature, estimatedCostCents: ESTIMATED_COST_CENTS, policyVersion: settings.policyVersion });
+    const reservation = reserveAiRequest({ actorUserId: user.id, duoId, feature, estimatedCostCents: ESTIMATED_AI_REQUEST_COST_CENTS, policyVersion: settings.policyVersion });
     try {
       const context = await buildContext(user, feature);
       if (!getAiSettings(user.id, today()).personalEnabled) {
@@ -101,15 +100,26 @@ async function generate(c: Context<AppEnv>, feature: AiFeature, userMessage: str
       if (result.rollbackReservation) reservation.rollback();
       else recordAiAuditEvent({ eventType: "completed", actorUserId: user.id, duoId: duoId ?? null, feature, policyVersion: settings.policyVersion });
       const usage = getAiSettings(user.id, today()).usage[feature];
-      return c.json({ text: result.text, mode: result.mode, remaining: usage.remaining, estimatedCostCents: ESTIMATED_COST_CENTS });
+      return c.json({ text: result.text, mode: result.mode, remaining: usage.remaining, estimatedCostCents: ESTIMATED_AI_REQUEST_COST_CENTS });
     } catch (error) {
       reservation.rollback();
       throw error;
     }
   } catch (error) {
-    if (error instanceof AiLimitError) return c.json({ error: "AI request limit reached" }, 429);
+    if (error instanceof AiLimitError) {
+      const { reason, retry } = aiLimitDetails(error, feature);
+      return c.json({ error: "AI request limit reached", reason, retry }, 429);
+    }
     if (error instanceof AiDuoUnavailableError) return c.json({ error: "duo unavailable" }, 404);
     return c.json({ error: "AI generation is unavailable" }, 503);
+  }
+}
+
+function aiLimitDetails(error: AiLimitError, feature: AiFeature): { reason: AiLimitReason; retry: AiLimitRetry } {
+  switch (error.limit) {
+    case "user_budget": return { reason: "daily_budget", retry: "tomorrow" };
+    case "project_budget": return { reason: "monthly_budget", retry: "next_month" };
+    case "feature": return { reason: "feature_quota", retry: feature === "duo_reflection" ? "next_week" : "tomorrow" };
   }
 }
 

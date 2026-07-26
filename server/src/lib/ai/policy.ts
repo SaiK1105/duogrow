@@ -9,6 +9,8 @@ import { pruneExpiredQuota } from "./quotaRetention.js";
 
 const FEATURES: AiFeature[] = ["daily_plan", "duo_reflection", "potd_tutor", "chat", "insights_explain"];
 const DEFAULT_POLICY_VERSION = "1";
+/** Every current generation reserves this amount from the shared daily budget. */
+export const ESTIMATED_AI_REQUEST_COST_CENTS = 1;
 
 export class AiConsentRequiredError extends Error {
   public constructor(duoId: string) {
@@ -82,9 +84,12 @@ export function getAiSettings(userId: string, date: string, config: AiRuntimeCon
     chat: config.chatCallsPerUser,
     insights_explain: config.dailyCallsPerUser,
   };
+  const dailyBudgetRemainingCents = Math.max(0, config.userDailyBudgetCents - dailyCost);
+  const budgetLimitedRequests = Math.floor(dailyBudgetRemainingCents / ESTIMATED_AI_REQUEST_COST_CENTS);
   const usage = Object.fromEntries(FEATURES.map((feature) => {
     const used = feature === "duo_reflection" ? reflectionUsage : counts.find((entry) => entry.feature === feature)?.request_count ?? 0;
-    return [feature, { remaining: Math.max(0, limits[feature] - used), estimatedCostCents: 0 }];
+    const featureRemaining = Math.max(0, limits[feature] - used);
+    return [feature, { remaining: Math.min(featureRemaining, budgetLimitedRequests), estimatedCostCents: ESTIMATED_AI_REQUEST_COST_CENTS }];
   })) as AiSettings["usage"];
   return {
     personalEnabled: preference?.personal_enabled === 1,
@@ -92,7 +97,7 @@ export function getAiSettings(userId: string, date: string, config: AiRuntimeCon
     mutualDuoConsent: duoId ? hasDuoReflectionConsent(duoId) : false,
     policyVersion: preference?.policy_version ?? DEFAULT_POLICY_VERSION,
     mode: preference?.personal_enabled === 1 ? coachingMode : "disabled",
-    dailyBudgetRemainingCents: Math.max(0, config.userDailyBudgetCents - dailyCost),
+    dailyBudgetRemainingCents,
     usage,
   };
 }

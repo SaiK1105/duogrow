@@ -206,6 +206,30 @@ test("daily plan returns a labelled demo response", async () => {
   assert.equal(typeof body.estimatedCostCents, "number");
 });
 
+test("chat reports only calls usable under the default daily budget", async () => {
+  insertUser("user-chat-default-budget", "token-chat-default-budget", null);
+  enablePersonal("user-chat-default-budget");
+
+  const first = await request("/chat", "token-chat-default-budget", "POST", { message: "Help me plan." });
+  assert.equal(first.status, 200);
+  assert.deepEqual(await first.json(), {
+    text: "Choose the smallest next action you can finish today.",
+    mode: "demo",
+    remaining: 2,
+    estimatedCostCents: 1,
+  });
+
+  assert.equal((await request("/chat", "token-chat-default-budget", "POST", { message: "Another step?" })).status, 200);
+  assert.equal((await request("/chat", "token-chat-default-budget", "POST", { message: "One more?" })).status, 200);
+  const limited = await request("/chat", "token-chat-default-budget", "POST", { message: "Can I continue?" });
+  assert.equal(limited.status, 429);
+  assert.deepEqual(await limited.json(), {
+    error: "AI request limit reached",
+    reason: "daily_budget",
+    retry: "tomorrow",
+  });
+});
+
 test("a provider-failure demo fallback releases both pseudonymous quota reservations", async () => {
   insertUser("user-live-fallback", "token-live-fallback");
   enablePersonal("user-live-fallback");
@@ -250,6 +274,22 @@ test("daily plan quota produces 429", async () => {
   enablePersonal("user-quota");
   for (let index = 0; index < 3; index += 1) assert.equal((await request("/daily-plan", "token-quota")).status, 200);
   assert.equal((await request("/daily-plan", "token-quota")).status, 429);
+});
+
+test("weekly Duo Reflection limit returns a stable next-week retry contract", async () => {
+  insertUser("user-weekly-limit-one", "token-weekly-limit-one", "duo-weekly-limit");
+  insertUser("user-weekly-limit-two", "token-weekly-limit-two", "duo-weekly-limit");
+  assert.equal((await request("/settings", "token-weekly-limit-one", "PUT", { personalEnabled: true, duoEnabled: true })).status, 200);
+  assert.equal((await request("/settings", "token-weekly-limit-two", "PUT", { personalEnabled: true, duoEnabled: true })).status, 200);
+  assert.equal((await request("/duo-reflection", "token-weekly-limit-one")).status, 200);
+
+  const limited = await request("/duo-reflection", "token-weekly-limit-two");
+  assert.equal(limited.status, 429);
+  assert.deepEqual(await limited.json(), {
+    error: "AI request limit reached",
+    reason: "feature_quota",
+    retry: "next_week",
+  });
 });
 
 test("an exhausted quota does not build generation context", async () => {

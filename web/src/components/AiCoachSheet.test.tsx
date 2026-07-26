@@ -63,6 +63,17 @@ describe('AiCoachSheet', () => {
     expect(screen.getByText('1 request remaining today')).toBeVisible()
   })
 
+  it('reports Duo Reflection availability by week rather than by day', async () => {
+    const user = userEvent.setup()
+    const duoReflection = vi.fn().mockResolvedValue({ text: 'Celebrate a shared win.', mode: 'demo', remaining: 0, estimatedCostCents: 1 })
+    render(<AiCoachSheet isOpen settings={settings} onClose={vi.fn()} client={{ duoReflection }} />)
+
+    await user.click(screen.getByRole('button', { name: 'Duo reflection' }))
+
+    expect(await screen.findByText('0 Duo Reflection requests remaining this week')).toBeVisible()
+    expect(screen.queryByText('0 requests remaining today')).not.toBeInTheDocument()
+  })
+
   it('enforces the 500 character chat limit before requesting', async () => {
     const user = userEvent.setup()
     const chat = vi.fn()
@@ -84,15 +95,36 @@ describe('AiCoachSheet', () => {
     expect(screen.getByText(/Both partners must enable Duo Reflection/i)).toBeVisible()
   })
 
-  it('shows quota and retry states after a failed request', async () => {
+  it('shows a daily budget limit without an ineffective retry', async () => {
     const user = userEvent.setup()
-    const dailyPlan = vi.fn().mockRejectedValueOnce({ status: 429 }).mockResolvedValueOnce({ text: 'Try a walk.', mode: 'live', remaining: 0, estimatedCostCents: 1 })
+    const dailyPlan = vi.fn().mockRejectedValue({ status: 429, reason: 'daily_budget', retry: 'tomorrow' })
     render(<AiCoachSheet isOpen settings={settings} onClose={vi.fn()} client={{ dailyPlan }} />)
 
     await user.click(screen.getByRole('button', { name: 'Create daily plan' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('daily AI budget')
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
+  })
+
+  it('offers retry after a transient coaching failure', async () => {
+    const user = userEvent.setup()
+    const dailyPlan = vi.fn().mockRejectedValueOnce({ status: 503 }).mockResolvedValueOnce({ text: 'Try a walk.', mode: 'live', remaining: 0, estimatedCostCents: 1 })
+    render(<AiCoachSheet isOpen settings={settings} onClose={vi.fn()} client={{ dailyPlan }} />)
+
+    await user.click(screen.getByRole('button', { name: 'Create daily plan' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Coaching is unavailable')
     await user.click(screen.getByRole('button', { name: 'Retry' }))
     expect(await screen.findByText('Try a walk.')).toBeVisible()
+  })
+
+  it('uses next-week copy for a weekly Duo Reflection feature limit', async () => {
+    const user = userEvent.setup()
+    const duoReflection = vi.fn().mockRejectedValue({ status: 429, reason: 'feature_quota', retry: 'next_week' })
+    render(<AiCoachSheet isOpen settings={settings} onClose={vi.fn()} client={{ duoReflection }} />)
+
+    await user.click(screen.getByRole('button', { name: 'Duo reflection' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Try again next week')
+    expect(screen.getByRole('alert')).not.toHaveTextContent('tomorrow')
   })
 
   it('explains when Duo Reflection is blocked by missing mutual partner consent', async () => {

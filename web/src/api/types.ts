@@ -7,6 +7,8 @@ export type AiStatus = 'pending' | 'verified' | 'review' | 'rejected' | 'error'
 export type Difficulty = 'easy' | 'medium' | 'hard'
 export type AiFeature = 'daily_plan' | 'duo_reflection' | 'potd_tutor' | 'chat' | 'insights_explain'
 export type AiMode = 'live' | 'demo' | 'disabled'
+export type AiLimitReason = 'feature_quota' | 'daily_budget' | 'monthly_budget'
+export type AiLimitRetry = 'tomorrow' | 'next_week' | 'next_month'
 
 // ----- Auth / identity -----
 export interface User {
@@ -191,6 +193,12 @@ export interface AiGenerationResponse {
   mode: Exclude<AiMode, 'disabled'>
   remaining: number
   estimatedCostCents: number
+}
+
+export interface AiLimitResponse {
+  error: string
+  reason: AiLimitReason
+  retry: AiLimitRetry
 }
 
 // ----- Insights -----
