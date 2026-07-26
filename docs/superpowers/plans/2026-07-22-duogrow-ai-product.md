@@ -1,6 +1,6 @@
 # DuoGrow AI Product Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a privacy-first, user-facing DuoGrow AI platform delivering Daily Coach, mutual-consent Duo Reflection, POTD Tutor, and ephemeral Coach Chat.
 
@@ -35,7 +35,7 @@
 
 **Produces:** Hashed persisted sessions, `GET /api/proofs/:id/file`, and authenticated browser object URLs.
 
-- [ ] **Step 1: Write failing server tests for session hashing and proof authorization**
+- [x] **Step 1: Write failing server tests for session hashing and proof authorization**
 
 ```ts
 import test from "node:test";
@@ -52,14 +52,14 @@ test("hashSessionToken is deterministic but does not return the bearer value", (
 Add a route test that creates two duos, authenticates as each, and expects a
 foreign `GET /api/proofs/:id/file` request to return 404.
 
-- [ ] **Step 2: Run the new tests and confirm the missing interfaces fail**
+- [x] **Step 2: Run the new tests and confirm the missing interfaces fail**
 
 Run: `npm --prefix server run test -- session.test.ts`
 
 Expected: FAIL because `session.ts`, the server test script, and private media
 route do not exist.
 
-- [ ] **Step 3: Add the migration-safe session and media implementation**
+- [x] **Step 3: Add the migration-safe session and media implementation**
 
 ```ts
 // server/src/lib/session.ts
@@ -83,13 +83,13 @@ file. Replace `/uploads/:name` with a 404. Add `api.proofFile(id)` that fetches
 with `authHeaders`, returns a `Blob`, and have `usePrivateProofUrl` revoke its
 object URL when the proof changes or the component unmounts.
 
-- [ ] **Step 4: Make the tests pass and run the existing web proof tests**
+- [x] **Step 4: Make the tests pass and run the existing web proof tests**
 
 Run: `npm --prefix server run test && npm --prefix web run test -- VerifyResult`
 
 Expected: server hash/authorization tests and existing proof rendering tests pass.
 
-- [ ] **Step 5: Commit the security foundation**
+- [x] **Step 5: Commit the security foundation**
 
 ```powershell
 git add server/src web/src package.json server/package.json
@@ -107,7 +107,7 @@ git commit -m "fix: secure sessions and proof media"
 
 **Produces:** Typed consent state, minimized contexts, atomic request reservation, and no-content audit records.
 
-- [ ] **Step 1: Write failing privacy and budget tests**
+- [x] **Step 1: Write failing privacy and budget tests**
 
 ```ts
 test("personal context omits free text, identifiers, proof paths, and partner data", () => {
@@ -125,13 +125,13 @@ Add tests that a cap returns `AiLimitError`, only a successful reservation
 increments counters, and deleting AI data removes consent/audit/usage records
 without touching tasks, proofs, or modules.
 
-- [ ] **Step 2: Run the test files and confirm they fail before implementation**
+- [x] **Step 2: Run the test files and confirm they fail before implementation**
 
 Run: `npm --prefix server run test -- policy.test.ts limits.test.ts context.test.ts`
 
 Expected: FAIL because the `lib/ai` modules and AI tables do not exist.
 
-- [ ] **Step 3: Implement policy tables, minimized contexts, and atomic limits**
+- [x] **Step 3: Implement policy tables, minimized contexts, and atomic limits**
 
 ```ts
 export type AiFeature = "daily_plan" | "duo_reflection" | "potd_tutor" | "chat";
@@ -154,14 +154,14 @@ configured targets, and aggregate weekly metrics only. Use `you`/`partner`
 labels for reflection. Write audit rows containing event type/feature/policy
 version/timestamp only.
 
-- [ ] **Step 4: Run focused server tests and inspect the SQL invariants**
+- [x] **Step 4: Run focused server tests and inspect the SQL invariants**
 
 Run: `npm --prefix server run test -- policy.test.ts limits.test.ts context.test.ts`
 
 Expected: PASS; assertions prove consent revocation, aggregate-only context,
 rollback, quota, and deletion behavior.
 
-- [ ] **Step 5: Commit the AI policy core**
+- [x] **Step 5: Commit the AI policy core**
 
 ```powershell
 git add server/src/db.ts server/src/types.ts server/src/lib/ai
@@ -179,7 +179,7 @@ git commit -m "feat: add AI consent and budget controls"
 **Produces:** `{ text, mode, inputTokens?, outputTokens? }` with reliable
 fallback and no provider-side state.
 
-- [ ] **Step 1: Write failing provider tests using mocked `fetch`**
+- [x] **Step 1: Write failing provider tests using mocked `fetch`**
 
 ```ts
 test("OpenAI request is text-only, bounded, and disables stored responses", async () => {
@@ -195,13 +195,13 @@ test("missing credential returns a labelled deterministic demo result", async ()
 });
 ```
 
-- [ ] **Step 2: Run provider tests and confirm the provider is absent**
+- [x] **Step 2: Run provider tests and confirm the provider is absent**
 
 Run: `npm --prefix server run test -- openAiProvider.test.ts demoAiProvider.test.ts`
 
 Expected: FAIL because provider modules do not exist.
 
-- [ ] **Step 3: Implement the provider seam and feature prompts**
+- [x] **Step 3: Implement the provider seam and feature prompts**
 
 ```ts
 export interface AiProvider {
@@ -225,13 +225,13 @@ medical diagnosis, and POTD progressive-hint policy. On key absence, timeout,
 non-OK response, or malformed output, generate feature-specific deterministic
 copy with `mode: "demo"` and no misleading success label.
 
-- [ ] **Step 4: Run provider tests and static checks**
+- [x] **Step 4: Run provider tests and static checks**
 
 Run: `npm --prefix server run test -- openAiProvider.test.ts demoAiProvider.test.ts; npm --prefix server run typecheck`
 
 Expected: PASS; a secret value never appears in test snapshots or output.
 
-- [ ] **Step 5: Commit the provider seam**
+- [x] **Step 5: Commit the provider seam**
 
 ```powershell
 git add server/src/lib/ai
@@ -248,7 +248,7 @@ git commit -m "feat: add OpenAI coaching provider"
 
 **Produces:** Settings, consent, deletion, and four read-only feature endpoints.
 
-- [ ] **Step 1: Write route tests for every authorization boundary**
+- [x] **Step 1: Write route tests for every authorization boundary**
 
 ```ts
 test("POST /api/ai/daily-plan returns 403 without personal consent", async () => {
@@ -266,13 +266,13 @@ Cover all four successful demo responses, mutual duo denial, revocation,
 `429` quota response, provider rollback, settings deletion, and exact no-chat
 storage behavior.
 
-- [ ] **Step 2: Run route tests and confirm the new API is missing**
+- [x] **Step 2: Run route tests and confirm the new API is missing**
 
 Run: `npm --prefix server run test -- ai.test.ts`
 
 Expected: FAIL because `/api/ai` is not registered.
 
-- [ ] **Step 3: Implement `aiRoutes` with strict payload validation**
+- [x] **Step 3: Implement `aiRoutes` with strict payload validation**
 
 ```ts
 aiRoutes.get("/settings", async (c) => c.json(await getAiSettings(c.get("user"))));
@@ -288,13 +288,13 @@ returns `text`, `mode`, `remaining`, and no prompt body. Use 400 for malformed
 input, 403 for consent, 404 for unavailable duo, 429 for caps, and 503 only
 when no safe result can be returned.
 
-- [ ] **Step 4: Run the server suite and confirm no API regression**
+- [x] **Step 4: Run the server suite and confirm no API regression**
 
 Run: `npm --prefix server run test && npm --prefix server run typecheck`
 
 Expected: PASS; existing routes retain their current behavior.
 
-- [ ] **Step 5: Commit the backend API**
+- [x] **Step 5: Commit the backend API**
 
 ```powershell
 git add server/src/routes/ai.ts server/src/routes/ai.test.ts server/src/index.ts server/src/honoEnv.ts
@@ -312,7 +312,7 @@ git commit -m "feat: add privacy-first AI API"
 **Produces:** Typed requests plus an accessible consent/generation sheet and
 privacy panel that never claims demo output is live.
 
-- [ ] **Step 1: Write failing component tests for consent and modes**
+- [x] **Step 1: Write failing component tests for consent and modes**
 
 ```tsx
 it("blocks a generation until personal consent is saved", async () => {
@@ -331,13 +331,13 @@ it("labels a fallback reply as Demo coaching", async () => {
 Test dialog focus, Escape, background inertness, loading/error/retry, 429 copy,
 the 500-character limit, and no full-solution Tutor wording.
 
-- [ ] **Step 2: Run component tests and confirm imports fail first**
+- [x] **Step 2: Run component tests and confirm imports fail first**
 
 Run: `npm --prefix web run test -- AiCoachSheet AiPrivacyPanel`
 
 Expected: FAIL because the client contracts and components do not exist.
 
-- [ ] **Step 3: Implement client contracts and reusable components**
+- [x] **Step 3: Implement client contracts and reusable components**
 
 ```ts
 export interface AiGenerationResponse {
@@ -364,13 +364,13 @@ partner consent, no proof media, retention controls, daily budget, and demo mode
 The privacy panel exposes enabled/revoked states, usage, mutual consent, and a
 confirmation step before deletion.
 
-- [ ] **Step 4: Run focused UI tests and lint**
+- [x] **Step 4: Run focused UI tests and lint**
 
 Run: `npm --prefix web run test -- AiCoachSheet AiPrivacyPanel; npm --prefix web run lint`
 
 Expected: PASS with no accessibility regression.
 
-- [ ] **Step 5: Commit shared AI UI**
+- [x] **Step 5: Commit shared AI UI**
 
 ```powershell
 git add web/src/api web/src/components
@@ -386,7 +386,7 @@ git commit -m "feat: add DuoGrow AI controls"
 
 **Produces:** All four discoverable AI experiences without a new navigation tab.
 
-- [ ] **Step 1: Write failing screen tests for contextual launchers**
+- [x] **Step 1: Write failing screen tests for contextual launchers**
 
 ```tsx
 it("opens Daily Coach from the Today Coach card", async () => {
@@ -404,13 +404,13 @@ it("keeps shared reflection unavailable until mutual consent", async () => {
 Cover Insights Explain/Plan, POTD Tutor, Chat, Profile consent/deletion, and
 Verify Result's rule that it cannot attach proof media.
 
-- [ ] **Step 2: Run screen tests and confirm the launchers are absent**
+- [x] **Step 2: Run screen tests and confirm the launchers are absent**
 
 Run: `npm --prefix web run test -- Today Insights Potd Profile VerifyResult`
 
 Expected: FAIL for each new visible control.
 
-- [ ] **Step 3: Wire contextual modes with local sheet state**
+- [x] **Step 3: Wire contextual modes with local sheet state**
 
 Use local screen state instead of global AI chat state. Today passes
 `daily_plan`/`chat`; Insights passes `daily_plan` with its selected explanation;
@@ -418,14 +418,14 @@ POTD passes `potd_tutor`; Profile renders `AiPrivacyPanel` and a Duo Reflection
 launcher only when both consents are true. Verify Result may open Daily Coach
 but never passes proof fields or file URLs. Preserve the five-control tab bar.
 
-- [ ] **Step 4: Run all web tests and build the SPA**
+- [x] **Step 4: Run all web tests and build the SPA**
 
 Run: `npm --prefix web run test && npm --prefix web run build`
 
 Expected: PASS; the production bundle builds and the AI surface remains usable
 at the project phone viewport.
 
-- [ ] **Step 5: Commit screen integration**
+- [x] **Step 5: Commit screen integration**
 
 ```powershell
 git add web/src/screens
@@ -444,21 +444,21 @@ git commit -m "feat: surface DuoGrow AI experiences"
 **Produces:** Honest operations guidance, deployment configuration, and final
 evidence for all privacy/cost claims.
 
-- [ ] **Step 1: Write documentation assertions into tests and a two-session smoke script**
+- [x] **Step 1: Write documentation assertions into tests and a two-session smoke script**
 
 Add a server test that a revoked user receives 403, another that a single
 partner receives 403 for reflection, and a production smoke command that proves
 the no-key response declares `mode: "demo"`. Assert public `/uploads/:name`
 returns 404 and authenticated `/api/proofs/:id/file` enforces duo membership.
 
-- [ ] **Step 2: Run those verification tests before documentation**
+- [x] **Step 2: Run those verification tests before documentation**
 
 Run: `npm --prefix server run test && npm --prefix web run test`
 
 Expected: PASS; if a claim is not provable by a test, correct the product/docs
 instead of claiming it.
 
-- [ ] **Step 3: Document exact deployment and privacy controls**
+- [x] **Step 3: Document exact deployment and privacy controls**
 
 Document `OPENAI_API_KEY`, every budget variable, server-only key requirement,
 `store: false`, provider abuse-monitoring disclosure, optional OpenAI ZDR/MAM,
@@ -467,14 +467,14 @@ the no-proof-media coaching boundary. Add an `.env.example` with names only,
 never secret values. Update the product spec with the new capabilities and
 explicitly retain the original verifier's Anthropic configuration.
 
-- [ ] **Step 4: Run the complete production-quality verification**
+- [x] **Step 4: Run the complete production-quality verification**
 
 Run: `npm run verify && npm --prefix server run test && npm run harness:doctor && git diff --check && git status --short`
 
 Expected: web tests, server tests, typecheck, lint, build, harness doctor, and
 whitespace checks pass; only intentional tracked changes remain before commit.
 
-- [ ] **Step 5: Commit product documentation and verification evidence**
+- [x] **Step 5: Commit product documentation and verification evidence**
 
 ```powershell
 git add docs AGENTS.md HANDOVER.md SPEC.md .env.example
