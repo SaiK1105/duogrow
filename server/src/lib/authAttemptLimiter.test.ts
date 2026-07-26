@@ -15,7 +15,7 @@ const attemptLimiterModule = await import(`./authAttemptLimiter${".js"}`).then(
   () => null,
 );
 
-test("credential attempt limiter keeps an exhausted name denied during capacity churn", () => {
+test("credential attempt limiter accepts new names during capacity churn while keeping an exhausted name denied", () => {
   assert.ok(attemptLimiterModule, "expected the bounded credential attempt limiter module");
   let now = 0;
   const limiter = new attemptLimiterModule.AuthAttemptLimiter({ maxAttempts: 2, windowMs: 100, maxEntries: 2, now: () => now });
@@ -24,9 +24,12 @@ test("credential attempt limiter keeps an exhausted name denied during capacity 
   assert.equal(limiter.allow("target"), true);
   assert.equal(limiter.allow("target"), false);
   assert.equal(limiter.allow("neighbor"), true);
+  assert.equal(limiter.allow("neighbor"), true);
+  assert.equal(limiter.allow("neighbor"), false);
   for (let index = 0; index < 10; index += 1) {
-    assert.equal(limiter.allow(`flood-${index}`), false);
+    assert.equal(limiter.allow(`flood-${index}`), true);
     assert.equal(limiter.allow("target"), false);
+    assert.equal(limiter.allow("neighbor"), false);
   }
   assert.equal(limiter.size, 2);
 

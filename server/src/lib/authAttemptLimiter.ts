@@ -34,7 +34,7 @@ export class AuthAttemptLimiter {
     return this.attempts.size;
   }
 
-  /** Records an eligible attempt, never displacing an active name when capacity is full. */
+  /** Records an eligible attempt without displacing active names when the cache is full. */
   public allow(normalizedName: string): boolean {
     const currentTime = this.now();
     this.prune(currentTime);
@@ -44,7 +44,7 @@ export class AuthAttemptLimiter {
       existing.count += 1;
       return true;
     }
-    if (this.attempts.size >= this.maxEntries) return false;
+    if (this.attempts.size >= this.maxEntries) return true;
     this.attempts.set(normalizedName, { count: 1, expiresAt: currentTime + this.windowMs });
     return true;
   }
