@@ -7,7 +7,7 @@ interface AttemptLimiter {
 }
 
 interface AttemptLimiterModule {
-  AuthAttemptLimiter: new (options: { maxAttempts: number; windowMs: number; maxEntries: number; now: () => number }) => AttemptLimiter;
+  AuthAttemptLimiter: new (options: { maxAttempts: number; windowMs: number; maxEntries: number; maxUntrackedAttempts?: number; now: () => number }) => AttemptLimiter;
 }
 
 const attemptLimiterModule = await import(`./authAttemptLimiter${".js"}`).then(
@@ -37,4 +37,32 @@ test("credential attempt limiter accepts new names during capacity churn while k
   assert.equal(limiter.allow("target"), true);
   assert.equal(limiter.allow("fresh"), true);
   assert.equal(limiter.size, 2);
+});
+
+test("a saturated credential attempt cache bounds untracked attempts instead of allowing unlimited guesses", () => {
+  assert.ok(attemptLimiterModule, "expected the bounded credential attempt limiter module");
+  let now = 0;
+  const limiter = new attemptLimiterModule.AuthAttemptLimiter({
+    maxAttempts: 1,
+    windowMs: 100,
+    maxEntries: 1,
+    maxUntrackedAttempts: 3,
+    now: () => now,
+  });
+
+  // Saturate the cache with one exhausted name, which must stay resident and denied.
+  assert.equal(limiter.allow("squatter"), true);
+  assert.equal(limiter.allow("squatter"), false);
+
+  // An untracked victim still gets a bounded budget rather than an endless supply.
+  assert.equal(limiter.allow("victim"), true);
+  assert.equal(limiter.allow("victim"), true);
+  assert.equal(limiter.allow("victim"), true);
+  assert.equal(limiter.allow("victim"), false);
+  assert.equal(limiter.allow("other-victim"), false);
+  assert.equal(limiter.allow("squatter"), false);
+
+  // The shared budget refills once its window rolls over.
+  now = 101;
+  assert.equal(limiter.allow("victim"), true);
 });

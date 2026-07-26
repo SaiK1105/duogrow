@@ -111,8 +111,14 @@ and chunked or absent-header bodies are counted and cancelled before JSON
 parsing at the same 1,024-byte ceiling. They then enforce the secret bound
 before a database lookup or hash. A small, bounded in-memory limiter caps
 repeated eligible attempts per normalized name; it stores neither secrets nor
-credential values, prunes only expired windows, and denies new names while its
-active capacity is full. DuoGrow salts and hashes the secret with Node's
+credential values and prunes only expired windows. At capacity it keeps already
+exhausted names denied rather than evicting them, and draws untracked attempts
+from a small shared per-window budget, so a saturated cache degrades brute-force
+protection to a bounded rate instead of removing it or locking every account out.
+Because a per-name limiter cannot throttle a flood of distinct names, key
+derivation for both endpoints also runs behind a shared work gate that bounds
+concurrent derivations and refuses excess callers with a 503 rather than queueing
+unbounded CPU work. DuoGrow salts and hashes the secret with Node's
 asynchronous `scrypt` before storage and uses constant-time comparison for
 login; plaintext secrets are neither stored nor returned. A duplicate display
 name cannot mint a session, and legacy rows without a credential cannot be

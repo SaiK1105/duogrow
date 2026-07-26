@@ -5,6 +5,7 @@ import { sessionAuth } from "../lib/authMiddleware.js";
 import { createSessionToken, hashSessionToken } from "../lib/session.js";
 import { hashCredential, MAX_SECRET_BYTES, MIN_SECRET_LENGTH, verifyCredential } from "../lib/credentials.js";
 import { credentialAttemptLimiter } from "../lib/authAttemptLimiter.js";
+import { credentialWorkGate, CREDENTIAL_WORK_REJECTED } from "../lib/credentialWorkGate.js";
 import { readBoundedRequestBody } from "../lib/boundedRequestBody.js";
 import type { AppEnv } from "../honoEnv.js";
 import { DEFAULT_USER_CONFIG, type DuoRow, type UserRow } from "../types.js";
@@ -65,7 +66,10 @@ authRoutes.post("/register", async (c) => {
   if (existing) return c.json({ error: "an account with that name already exists — sign in instead" }, 409);
   const token = createSessionToken();
   const tokenHash = hashSessionToken(token);
-  const credential = await hashCredential(secret);
+  // Registration accepts an unlimited supply of distinct names, which the per-name
+  // attempt limiter cannot throttle, so the derivation runs under the shared gate.
+  const credential = await credentialWorkGate.run(() => hashCredential(secret));
+  if (credential === CREDENTIAL_WORK_REJECTED) return c.json({ error: "account registration is busy; try again shortly" }, 503);
 
   const id = newId("usr");
   try {
@@ -95,7 +99,9 @@ authRoutes.post("/login", async (c) => {
     return c.json({ error: "invalid name or secret" }, 401);
   }
   if (!credentialAttemptLimiter.allow(normalizedName)) return c.json({ error: "too many credential attempts; try again shortly" }, 429);
-  if (!await verifyCredential(secret, existing.credential_salt, existing.credential_hash)) return c.json({ error: "invalid name or secret" }, 401);
+  const verified = await credentialWorkGate.run(() => verifyCredential(secret, existing.credential_salt, existing.credential_hash));
+  if (verified === CREDENTIAL_WORK_REJECTED) return c.json({ error: "sign-in is busy; try again shortly" }, 503);
+  if (!verified) return c.json({ error: "invalid name or secret" }, 401);
 
   const token = createSessionToken();
   const tokenHash = hashSessionToken(token);
