@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DuoGrow AI — implementation handoff</title>
+    <style>
+      :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      body { max-width: 980px; margin: 0 auto; padding: 48px 24px; line-height: 1.6; background: #101712; color: #edf4ed; }
+      h1, h2, h3 { line-height: 1.2; color: #b9f6c2; }
+      h1 { font-size: clamp(2rem, 5vw, 3.4rem); margin-bottom: .35rem; }
+      h2 { margin-top: 2.5rem; border-bottom: 1px solid #315139; padding-bottom: .35rem; }
+      .lede { color: #c7d3c8; font-size: 1.15rem; }
+      .status { background: #17351f; border: 1px solid #4e9b5a; border-radius: 12px; padding: 16px 18px; }
+      .warning { background: #392d14; border: 1px solid #b68b2d; border-radius: 12px; padding: 16px 18px; }
+      code { background: #213124; border-radius: 4px; padding: .1rem .35rem; color: #d8f3d9; }
+      table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+      th, td { text-align: left; vertical-align: top; padding: .7rem; border-bottom: 1px solid #315139; }
+      th { color: #b9f6c2; }
+      .timeline { border-left: 2px solid #579e65; padding-left: 1.3rem; }
+      .timeline li { margin: 0 0 1rem; padding-left: .25rem; }
+      a { color: #9be7ab; }
+      footer { margin-top: 3rem; color: #aab8ab; font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <h1>DuoGrow AI implementation handoff</h1>
+    <p class="lede">A record of the product work completed for the user-facing AI experience, its privacy and cost controls, and the work intentionally left for a later release pass.</p>
+
+    <section class="status">
+      <strong>Current release state:</strong> the independently reviewed work is merged into <code>master</code> and has passed the full local release gate. This handoff snapshot was committed immediately before the final GitHub push and browser smoke test.
+    </section>
+
+    <h2>Requested product scope</h2>
+    <p>The requested feature was a production-safe, user-facing DuoGrow AI capability. Four experiences were designed and implemented without adding a new primary navigation destination:</p>
+    <table>
+      <thead><tr><th>Experience</th><th>Purpose</th><th>Where it appears</th></tr></thead>
+      <tbody>
+        <tr><td>Daily Coach</td><td>Offers a small, actionable nudge based on a safe summary of the user's recent activity.</td><td>Today and verification-result surfaces.</td></tr>
+        <tr><td>Duo Reflection</td><td>Offers a mutual weekly reflection only after both people have opted in.</td><td>Insights.</td></tr>
+        <tr><td>POTD Tutor</td><td>Explains a programming-problem concept and provides bounded tutoring help.</td><td>Problem-of-the-day screen.</td></tr>
+        <tr><td>Ephemeral AI chat</td><td>Provides a short support conversation that is deliberately not retained as a transcript.</td><td>AI coach sheet.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Product and safety decisions</h2>
+    <ul>
+      <li>The feature is branded <strong>DuoGrow AI</strong>, not “Codex”; it does not execute code or expose an agent workspace.</li>
+      <li>AI is off by default. Personal consent is required before use, and Duo Reflection also requires current consent from both partners.</li>
+      <li>Users can revoke consent and delete associated AI preference metadata. Chat messages are not persisted.</li>
+      <li>The provider is server-side only. Browser code never receives the provider key.</li>
+      <li>Prompts exclude uploaded proof files, media, file paths, raw identifiers, invite tokens, and detailed proof-verifier output.</li>
+      <li>Production calls use the OpenAI Responses API with <code>store: false</code>, no tools, no background jobs, no file uploads, a bounded output, and a timeout.</li>
+      <li>When a live key is unavailable, the application uses deterministic demo behaviour so the product remains testable.</li>
+      <li>The default cost guardrails are three cents per user per day and twenty-five dollars per project per month, with separate request caps for each experience.</li>
+    </ul>
+
+    <h2>Implementation completed</h2>
+    <ul>
+      <li>Added AI consent, preference, quota, and audit-related database support.</li>
+      <li>Added server-side policy enforcement, budget reservation, safe context construction, provider abstraction, deterministic demo provider, and OpenAI provider.</li>
+      <li>Added AI API endpoints for settings, coaching, reflections, tutoring, and short-lived chat.</li>
+      <li>Added configuration defaults for model, per-user daily spend, project monthly spend, and feature request limits.</li>
+      <li>Added profile privacy controls and AI UI across Today, Insights, POTD, and verification-result flows.</li>
+      <li>Strengthened session handling, seeded-demo credentials, proof-media authorization, credential hashing, authentication attempt limiting, and cache controls.</li>
+      <li>Added request-size bounds to protect AI endpoints from oversized streamed JSON bodies.</li>
+      <li>Changed the UI to show the actual shared daily AI-cent balance rather than misleadingly summing individual feature limits.</li>
+      <li>Added operational documentation, a product design, an implementation plan, focused tests, and release handoff reports.</li>
+    </ul>
+
+    <h2>Key commits on the feature branch</h2>
+    <ol class="timeline">
+      <li><code>1fed70e</code>, <code>762d213</code> — secured sessions, proof media, and seeded-session behaviour.</li>
+      <li><code>9b1771a</code>, <code>7dc8015</code> — added AI consent, budgets, safe context, and reflection quota policy.</li>
+      <li><code>aa2e624</code>, <code>65de462</code> — added and hardened the OpenAI coaching provider.</li>
+      <li><code>f642add</code>, <code>c9f44c6</code> — added privacy-first AI routes and early quota reservation.</li>
+      <li><code>f47d98a</code>, <code>b8e4c4c</code>, <code>250b91c</code>, <code>c61e3ee</code> — added and hardened the web experiences and tests.</li>
+      <li><code>2d99b56</code> — configured the model and AI-budget environment values.</li>
+      <li><code>db5a916</code>, <code>5c89cdf</code>, <code>173a34c</code> — closed multiple privacy, authentication, race-condition, and review findings.</li>
+      <li><code>db5b42c</code> — bounded AI request bodies and corrected daily-budget presentation; locally verified but not yet independently reviewed.</li>
+    </ol>
+
+    <h2>Verification already run</h2>
+    <p>The latest Task 11 pass reports successful execution of:</p>
+    <ul>
+      <li><code>npm test</code></li>
+      <li><code>npm run verify</code></li>
+      <li><code>npm run harness:doctor</code></li>
+      <li><code>git diff --check</code></li>
+    </ul>
+    <p>No live OpenAI call was made because no local provider key was configured. The validation therefore covers deterministic/demo and fixture paths, not a billable production-provider request.</p>
+
+    <h2>What remains before publication</h2>
+    <section class="warning">
+      <ol>
+        <li>Push the verified <code>master</code> branch to <code>origin</code>.</li>
+        <li>Start a production build on a non-conflicting local port and complete the requested in-browser smoke test with isolated seeded demo data.</li>
+      </ol>
+    </section>
+
+    <h2>Related project records</h2>
+    <ul>
+      <li><a href="superpowers/specs/2026-07-22-duogrow-ai-product-design.md">Product design</a></li>
+      <li><a href="superpowers/plans/2026-07-22-duogrow-ai-product.md">Implementation plan</a></li>
+      <li><a href="duogrow-ai.md">Operational documentation</a></li>
+      <li>Ignored continuation handoff: <code>.worktrees/codex-duogrow-ai/.superpowers/sdd/remaining-work.md</code></li>
+      <li>Ignored Task 11 evidence: <code>.worktrees/codex-duogrow-ai/.superpowers/sdd/task-11-report.md</code></li>
+    </ul>
+
+    <footer>Prepared as a handoff snapshot on 22 July 2026. It intentionally records the difference between locally completed code and a published release.</footer>
+  </body>
+</html>
