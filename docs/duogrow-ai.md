@@ -84,8 +84,8 @@ sends the message the person enters to the coaching provider, so the UI tells
 people not to include sensitive personal information.
 
 The combined settings update (which records Duo consent) and chat routes read
-raw request streams before parsing JSON: settings are capped at 256 bytes and
-chat at 4 KiB. An oversized advertised or chunked body is cancelled and
+raw request streams before parsing JSON: each is capped at 4 KiB. An oversized
+advertised or chunked body is cancelled and
 receives a 413 response before it can change consent, reserve quota, or reach
 a coaching provider.
 

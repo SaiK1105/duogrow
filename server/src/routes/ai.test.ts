@@ -94,7 +94,7 @@ test("AI settings and chat cancel oversized chunked JSON before state changes or
     provider: { generate: async () => { providerCalls += 1; return { text: "must not run", mode: "demo" }; } },
   }));
 
-  const settings = await streamedAiWithoutContentLength("/settings", "token-bounded-settings", "PUT", chunks({ personalEnabled: true, duoEnabled: true, padding: "x".repeat(2_000) }), boundedApp);
+  const settings = await streamedAiWithoutContentLength("/settings", "token-bounded-settings", "PUT", chunks({ personalEnabled: true, duoEnabled: true, padding: "x".repeat(5_000) }), boundedApp);
   assert.equal(settings.response.status, 413);
   assert.equal(settings.cancelled, true);
   assert.equal((db.prepare("SELECT count(*) AS count FROM ai_preferences WHERE user_id = ?").get("user-bounded-settings") as { count: number }).count, 0);

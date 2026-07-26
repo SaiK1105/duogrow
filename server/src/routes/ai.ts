@@ -16,7 +16,7 @@ import type { AiProvider } from "../lib/ai/provider.js";
 
 const POLICY_VERSION = "1";
 const MAX_CHAT_CHARS = 500;
-const MAX_SETTINGS_JSON_BYTES = 256;
+const MAX_SETTINGS_JSON_BYTES = 4 * 1_024;
 const MAX_CHAT_JSON_BYTES = 4 * 1_024;
 
 type AiContext = ReturnType<typeof buildPersonalAiContext> | ReturnType<typeof buildDuoReflectionContext> | ReturnType<typeof buildInsightsExplainContext> | ReturnType<typeof buildPotdTutorContext>;
