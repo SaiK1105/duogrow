@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DuoGrow — Developer Manual</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #080d09;
+        --surface: #0f1712;
+        --surface-2: #141f18;
+        --line: #274031;
+        --line-soft: #1c2c22;
+        --text: #e7f0e9;
+        --text-dim: #a6b8ab;
+        --accent: #6ee787;
+        --accent-dim: #3fb95c;
+        --amber: #e8b339;
+        --red: #ff6b6b;
+        --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+        --sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(900px 500px at 12% -10%, #14301d 0%, transparent 60%),
+          radial-gradient(700px 400px at 100% 0%, #2a2410 0%, transparent 55%),
+          var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 48px; max-width: 1280px; margin: 0 auto; padding: 40px 28px 96px; }
+
+      /* ---- sidebar ---- */
+      .toc { position: sticky; top: 28px; align-self: start; max-height: calc(100vh - 56px); overflow-y: auto; font-size: .88rem; }
+      .toc__brand { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .35rem; }
+      .toc__brand strong { font-size: 1.15rem; letter-spacing: -.02em; color: var(--accent); }
+      .toc__meta { color: var(--text-dim); font-size: .74rem; margin: 0 0 1.4rem; font-family: var(--mono); }
+      .toc ol { list-style: none; margin: 0; padding: 0; counter-reset: sec; }
+      .toc li { counter-increment: sec; }
+      .toc a { display: block; padding: .34rem .6rem; border-radius: 7px; color: var(--text-dim); text-decoration: none; border-left: 2px solid transparent; }
+      .toc a::before { content: counter(sec) ". "; color: var(--line); font-family: var(--mono); font-size: .8em; }
+      .toc a:hover { color: var(--text); background: var(--surface); border-left-color: var(--accent-dim); }
+
+      /* ---- content ---- */
+      main { min-width: 0; }
+      h1 { font-size: clamp(2.1rem, 4.5vw, 3.1rem); line-height: 1.08; letter-spacing: -.035em; margin: 0 0 .5rem; }
+      h1 .leaf { color: var(--accent); }
+      .lede { font-size: 1.12rem; color: var(--text-dim); max-width: 62ch; margin: 0 0 2rem; }
+      h2 { font-size: 1.5rem; letter-spacing: -.02em; margin: 3.4rem 0 .2rem; padding-bottom: .45rem; border-bottom: 1px solid var(--line); scroll-margin-top: 24px; }
+      h2 .num { color: var(--accent-dim); font-family: var(--mono); font-size: .78em; margin-right: .5rem; }
+      h3 { font-size: 1.06rem; margin: 2rem 0 .4rem; color: var(--accent); letter-spacing: -.01em; }
+      p, li { max-width: 78ch; }
+      a { color: var(--accent); }
+      code { font-family: var(--mono); font-size: .87em; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 5px; padding: .08em .36em; color: #cfeed6; white-space: nowrap; }
+      pre { background: var(--surface); border: 1px solid var(--line-soft); border-left: 3px solid var(--accent-dim); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: var(--mono); font-size: .84rem; line-height: 1.6; }
+      pre code { background: none; border: 0; padding: 0; white-space: pre; color: #d6ecda; }
+
+      .table-wrap { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--line-soft); border-radius: 10px; }
+      table { width: 100%; border-collapse: collapse; font-size: .87rem; min-width: 520px; }
+      th, td { text-align: left; vertical-align: top; padding: .6rem .8rem; border-bottom: 1px solid var(--line-soft); }
+      th { background: var(--surface-2); color: var(--accent); font-weight: 600; white-space: nowrap; }
+      tr:last-child td { border-bottom: 0; }
+      td code { white-space: nowrap; }
+
+      .note { border-radius: 10px; padding: 14px 18px; margin: 1.2rem 0; border: 1px solid; }
+      .note p:last-child { margin-bottom: 0; }
+      .note p:first-child { margin-top: 0; }
+      .note--warn { background: #2a2110; border-color: #7a5d1c; }
+      .note--warn strong { color: var(--amber); }
+      .note--dark { background: #2a1414; border-color: #7a2c2c; }
+      .note--dark strong { color: var(--red); }
+      .note--tip { background: #10241a; border-color: #2f6b42; }
+      .note--tip strong { color: var(--accent); }
+
+      .pill { display: inline-block; font-family: var(--mono); font-size: .72rem; padding: .1rem .45rem; border-radius: 20px; border: 1px solid var(--line); color: var(--text-dim); }
+      .pill--yes { color: var(--accent); border-color: var(--accent-dim); }
+      .pill--no { color: var(--text-dim); }
+      .method { font-family: var(--mono); font-weight: 600; font-size: .78rem; }
+      .m-get { color: #6ee787; } .m-post { color: #7cc4ff; } .m-put { color: var(--amber); } .m-del { color: var(--red); }
+
+      .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin: 1.2rem 0; }
+      .card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: 12px; padding: 14px 16px; }
+      .card h4 { margin: 0 0 .3rem; font-size: .93rem; color: var(--accent); }
+      .card p { margin: 0; font-size: .85rem; color: var(--text-dim); }
+
+      footer { margin-top: 4rem; padding-top: 1.4rem; border-top: 1px solid var(--line); color: var(--text-dim); font-size: .84rem; }
+
+      @media (max-width: 900px) {
+        .layout { grid-template-columns: 1fr; gap: 12px; padding: 24px 18px 64px; }
+        .toc { position: static; max-height: none; border-bottom: 1px solid var(--line); padding-bottom: 1rem; }
+        .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <nav class="toc" aria-label="Contents">
+        <div class="toc__brand"><strong>DuoGrow</strong><span>dev manual</span></div>
+        <p class="toc__meta">rev c87162c · 2026-07-27</p>
+        <ol>
+          <li><a href="#overview">What this is</a></li>
+          <li><a href="#quickstart">Quick start</a></li>
+          <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#layout">Repo layout</a></li>
+          <li><a href="#commands">Commands</a></li>
+          <li><a href="#env">Environment</a></li>
+          <li><a href="#api">API reference</a></li>
+          <li><a href="#schema">Database schema</a></li>
+          <li><a href="#web">Web app</a></li>
+          <li><a href="#ai">The two AI systems</a></li>
+          <li><a href="#security">Security model</a></li>
+          <li><a href="#testing">Testing &amp; CI</a></li>
+          <li><a href="#deploy">Deployment</a></li>
+          <li><a href="#gotchas">Gotchas</a></li>
+        </ol>
+      </nav>
+
+      <main>
+        <h1>DuoGrow <span class="leaf">Developer Manual</span></h1>
+        <p class="lede">
+          An AI accountability app for exactly two people. You pair with one person, do real
+          things, upload proof, and AI verifies it — a shared dashboard, duo streak, and growth
+          score update live for both of you. This manual documents how the app is actually built.
+        </p>
+
+        <!-- 1 -->
+        <h2 id="overview"><span class="num">01</span>What this is</h2>
+        <p>
+          DuoGrow is a two-package TypeScript monorepo: a <strong>Hono + better-sqlite3</strong> API
+          and a <strong>React 19 + Vite</strong> single-page app. In production a single Node process
+          serves both the API and the built SPA from one origin, so there is no CORS layer anywhere
+          in the codebase.
+        </p>
+        <div class="grid">
+          <div class="card"><h4>Server</h4><p>Hono 4.12.31 on @hono/node-server, better-sqlite3 12.11.1, run through <code>tsx</code>. No build step — TypeScript executes directly.</p></div>
+          <div class="card"><h4>Web</h4><p>React 19.2.7 + react-router-dom 7 (HashRouter), built by Vite 8. Styled with hand-written CSS — no UI framework.</p></div>
+          <div class="card"><h4>Data</h4><p>One SQLite file plus an uploads folder under <code>DATA_DIR</code>. WAL mode, foreign keys on.</p></div>
+          <div class="card"><h4>Runtime</h4><p>Node <code>&gt;=22.9</code> is a hard requirement — the start scripts use <code>--env-file-if-exists</code>.</p></div>
+        </div>
+
+        <!-- 2 -->
+        <h2 id="quickstart"><span class="num">02</span>Quick start</h2>
+        <p>Three installs, because the root, server, and web each have their own lockfile:</p>
+<pre><code>npm install
+npm --prefix server install
+npm --prefix web install
+
+npm run seed     # demo duo: Sreya + Sai, 7 days of history
+npm run dev      # web :5173, api :8787</code></pre>
+        <p>
+          Sign in with the seeded demo credentials <code>Sreya</code> / <code>demo-sreya</code> or
+          <code>Sai</code> / <code>demo-sai</code>. These are demo fixtures committed to the repo,
+          not production accounts.
+        </p>
+        <p>To run the production shape locally — one process, API and SPA on one origin:</p>
+<pre><code>npm run build
+npm start        # http://localhost:8787</code></pre>
+        <p>
+          Or use the isolated smoke target, which mirrors the Render boot exactly but against a
+          throwaway temp data directory, so your real <code>~/.duogrow</code> is never touched:
+        </p>
+<pre><code>npm run smoke:isolated</code></pre>
+
+        <!-- 3 -->
+        <h2 id="architecture"><span class="num">03</span>Architecture</h2>
+<pre><code>            dev                                  production
+  ┌──────────────────────┐              ┌────────────────────────────┐
+  │ Vite :5173  (SPA)    │              │  Node :PORT                │
+  │   proxies /api  ─────┼──┐           │    Hono app                │
+  └──────────────────────┘  │           │      /api/*     routes     │
+                            ▼           │      /*         web/dist   │
+  ┌──────────────────────┐              └────────────┬───────────────┘
+  │ Node :8787  (API)    │                           │
+  │   Hono + SQLite      │                    SQLite + uploads
+  └──────────────────────┘                     ($DATA_DIR)</code></pre>
+        <p>
+          In development Vite owns the SPA and proxies <code>/api</code> and <code>/uploads</code> to
+          the API. In production the same Hono process serves <code>web/dist</code> as static files,
+          registered <em>after</em> the API routes so <code>/api</code> always wins.
+        </p>
+        <p>
+          Static serving is gated on the <code>--serve-web</code> argv flag rather than
+          <code>NODE_ENV</code>, and <code>serve-static</code> is loaded by dynamic
+          <code>import()</code>. Both details are deliberate: a static import pulls the module into
+          <code>tsx watch</code>'s file-watch set, where it can wedge the dev watcher before the
+          server ever binds.
+        </p>
+        <p>
+          Partner sync is <strong>3-second polling</strong>, not websockets. Sessions live in
+          <code>sessionStorage</code>, which makes them <em>per browser tab</em> — that is what lets
+          you demo both sides of a duo in two tabs of one browser.
+        </p>
+
+        <!-- 4 -->
+        <h2 id="layout"><span class="num">04</span>Repo layout</h2>
+<pre><code>server/src/
+  index.ts          route mounting, static serving, listen
+  db.ts             schema, indexes, migrations
+  seed.ts           wipe + reseed demo state
+  routes/           auth duo today modules proofs potd cheers insights ai report
+  lib/              verifier, scoring, streaks, credentials, sessions, multipart…
+  lib/ai/           the coaching subsystem (config, policy, limits, providers)
+
+web/src/
+  screens/          Onboarding Today Upload VerifyResult Potd Insights Profile
+  components/       AiCoachSheet PhoneFrame TabBar Toast ModuleRow …
+  hooks/            usePolling useCountUp usePrivateProofUrl
+  api/client.ts     fetch wrapper, session handling, ApiError
+
+scripts/harness/    verify, doctor, isolated-run, create-run
+docs/               this manual, duogrow-ai.md, plans and specs</code></pre>
+
+        <!-- 5 -->
+        <h2 id="commands"><span class="num">05</span>Commands</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td><code>npm run dev</code></td><td>API + web together. Web waits on <code>/api/health</code> first (up to 40s) to dodge a Windows esbuild cold-start race.</td></tr>
+              <tr><td><code>npm run seed</code> / <code>reset</code></td><td>Wipe and rebuild demo state. Destructive.</td></tr>
+              <tr><td><code>npm run build</code></td><td><code>tsc -b &amp;&amp; vite build</code> → <code>web/dist</code>.</td></tr>
+              <tr><td><code>npm start</code></td><td>Production server, API + SPA on one origin.</td></tr>
+              <tr><td><code>npm run smoke</code></td><td><code>seed &amp;&amp; start</code> — mirrors Render's start command.</td></tr>
+              <tr><td><code>npm run smoke:isolated</code></td><td>The above with a fresh temp <code>DATA_DIR</code> and forced demo AI.</td></tr>
+              <tr><td><code>npm test</code></td><td>Server suite, then web suite.</td></tr>
+              <tr><td><code>npm run test:server</code></td><td>Server only — <code>tsx --test</code>.</td></tr>
+              <tr><td><code>npm run typecheck</code></td><td>Server <code>tsc --noEmit</code> + web <code>tsc -b</code>.</td></tr>
+              <tr><td><code>npm run lint</code></td><td>oxlint over web.</td></tr>
+              <tr><td><code>npm run verify</code></td><td>The release gate. Stops at the first failure.</td></tr>
+              <tr><td><code>npm run harness:doctor</code></td><td>Static self-audit of the agent harness config.</td></tr>
+              <tr><td><code>npm run harness:isolated</code></td><td>Run any command against a throwaway data dir.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          <code>npm run verify</code> runs, in order: web tests → typecheck → web lint → production
+          build → <code>git diff --check</code>. Note what is <em>absent</em>: it does not run the
+          server suite. CI runs <code>npm run test:server</code> as its own step to cover that.
+        </p>
+
+        <!-- 6 -->
+        <h2 id="env"><span class="num">06</span>Environment</h2>
+        <p>
+          Everything is server-side. The app runs fully in demo mode with no variables set at all —
+          copy <code>.env.example</code> to <code>.env</code> only when you want live AI.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead>
+            <tbody>
+              <tr><td><code>API_PORT</code></td><td>→ <code>PORT</code> → 8787</td><td>Listen port. Wins over <code>PORT</code>. Keep set locally; leave unset on Render.</td></tr>
+              <tr><td><code>PORT</code></td><td>8787</td><td>Fallback port. Injected by most hosts.</td></tr>
+              <tr><td><code>DATA_DIR</code></td><td><code>~/.duogrow</code></td><td>SQLite + uploads root. Keep it outside OneDrive.</td></tr>
+              <tr><td><code>ANTHROPIC_API_KEY</code></td><td>unset</td><td>Enables live <strong>proof verification</strong>. Unset ⇒ deterministic demo verifier.</td></tr>
+              <tr><td><code>DEMO_FAKE_AI</code></td><td>unset</td><td>Exactly <code>"1"</code> forces demo mode even with a key. Stage insurance.</td></tr>
+              <tr><td><code>PROOF_MODEL</code></td><td><code>claude-opus-4-8</code></td><td>Vision model for proof checks. Not validated.</td></tr>
+              <tr><td><code>INSIGHTS_MODEL</code></td><td><code>claude-haiku-4-5</code></td><td>Text model for weekly insights. Not validated.</td></tr>
+              <tr><td><code>OPENAI_API_KEY</code></td><td>unset</td><td>Enables live <strong>coaching</strong>. Unset ⇒ demo coaching.</td></tr>
+              <tr><td><code>OPENAI_MODEL</code></td><td><code>gpt-5-mini</code></td><td>Coaching model. Must match a safe-name pattern or it reverts.</td></tr>
+              <tr><td><code>AI_USER_DAILY_BUDGET_CENTS</code></td><td>3</td><td>Per-user daily coaching spend cap.</td></tr>
+              <tr><td><code>AI_PROJECT_MONTHLY_BUDGET_CENTS</code></td><td>2500</td><td>Project-wide monthly cap.</td></tr>
+              <tr><td><code>AI_DAILY_CALLS_PER_USER</code></td><td>3</td><td>Daily-plan requests per user per day.</td></tr>
+              <tr><td><code>AI_TUTOR_CALLS_PER_USER</code></td><td>5</td><td>POTD tutor requests per user per day.</td></tr>
+              <tr><td><code>AI_CHAT_CALLS_PER_USER</code></td><td>10</td><td>Chat requests per user per day.</td></tr>
+              <tr><td><code>AI_REFLECTIONS_PER_DUO_PER_WEEK</code></td><td>1</td><td>Duo Reflection requests per duo per week.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note note--warn">
+          <p><strong>Invalid numbers fail safe, and silently.</strong> Every numeric AI variable is
+          parsed with a strict <code>^[1-9]\d*$</code> test. <code>0</code>, negatives, and decimals
+          all fall back to the conservative default rather than disabling enforcement — so a typo
+          cannot accidentally remove a spend cap, but it also will not warn you.</p>
+        </div>
+
+        <!-- 7 -->
+        <h2 id="api"><span class="num">07</span>API reference</h2>
+        <p>
+          All routes sit under <code>/api</code>. Authentication is a bearer-style
+          <code>x-session</code> header, hashed with SHA-256 and compared against
+          <code>users.session_token_hash</code>.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Method</th><th>Path</th><th>Purpose</th><th>Auth</th></tr></thead>
+            <tbody>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/auth/register</code></td><td>Create an account, return a session token</td><td><span class="pill pill--no">no</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/auth/login</code></td><td>Verify credential, rotate session token</td><td><span class="pill pill--no">no</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/auth/me</code></td><td>Current user and duo</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/duo</code></td><td>Create a duo, generate invite code</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/duo/join</code></td><td>Join by invite code (max 2 members)</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/duo</code></td><td>Your duo and its members</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/today</code></td><td>The whole dashboard: both snapshots, progress, streak, growth score, unseen cheers</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-put">PUT</span></td><td><code>/api/modules/:module</code></td><td>Upsert today's entry for one module</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/proofs</code></td><td>Upload proof, verify, auto-apply on high confidence</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/proofs/:id/apply</code></td><td>Apply a suggested update for a proof in review</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/proofs/:id/file</code></td><td>Stream proof bytes, duo-scoped</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/proofs</code></td><td>12 most recent proofs for your duo</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/potd/today</code></td><td>Today's problem for you and your partner</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/potd/upload</code></td><td>Import a question bank (CSV always; PDF only in live mode)</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/potd/bank</code></td><td>Question bank with solved flags</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/cheers</code></td><td>Send a cheer to your partner</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/cheers/:id/seen</code></td><td>Mark a cheer seen</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/insights</code></td><td>Growth score, subscores, verifier narrative</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/ai/settings</code></td><td>Consent flags, usage, remaining budget</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-put">PUT</span></td><td><code>/api/ai/settings</code></td><td>Update personal / duo consent</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-del">DELETE</span></td><td><code>/api/ai/data</code></td><td>Delete your AI subsystem data</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/ai/daily-plan</code></td><td>Generate a daily plan</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/ai/duo-reflection</code></td><td>Weekly reflection — requires mutual consent</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/ai/potd-tutor</code></td><td>Tutoring for today's problem</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/ai/insights-explain</code></td><td>Explain the insight numbers</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-post">POST</span></td><td><code>/api/ai/chat</code></td><td>Ephemeral chat, message ≤ 500 chars</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/report/weekly</code></td><td>Weekly rollup and verdict</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/health</code></td><td>Liveness + active AI mode. Render's health check.</td><td><span class="pill pill--no">no</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          There is no global body limit, logger, or error handler. Size caps are per route: auth JSON
+          1 KB, AI settings and chat 4 KB each, proof upload 5 MB, POTD import 10 MB. Unmatched
+          paths return <code>{"error":"not found"}</code>.
+        </p>
+
+        <!-- 8 -->
+        <h2 id="schema"><span class="num">08</span>Database schema</h2>
+        <p>
+          SQLite at <code>$DATA_DIR/duogrow.sqlite</code>, WAL journal, foreign keys enforced. Every
+          <code>CREATE</code> is <code>IF NOT EXISTS</code> and migrations run at import, so booting
+          an old database upgrades it in place.
+        </p>
+        <h3>Core tables</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Table</th><th>Holds</th></tr></thead>
+            <tbody>
+              <tr><td><code>duos</code></td><td>The pair: name, unique invite code, POTD mode.</td></tr>
+              <tr><td><code>users</code></td><td>Account, duo membership, hashed session token, scrypt credential salt + hash, config JSON.</td></tr>
+              <tr><td><code>daily_entries</code></td><td>One row per user/date/module. Modules: wake, study, workout, diet, tasks. Unique on <code>(user_id, date, module)</code>.</td></tr>
+              <tr><td><code>proofs</code></td><td>Uploaded file path, MIME, and the full verdict: status, confidence, band, summary, evidence, metrics, coach message, suggested update.</td></tr>
+              <tr><td><code>potd_questions</code></td><td>Per-duo question bank with topic, difficulty, body, answer.</td></tr>
+              <tr><td><code>potd_assignments</code></td><td>Who got which question on which date, and whether it is solved. Unique on <code>(user_id, date)</code>.</td></tr>
+              <tr><td><code>streaks</code></td><td>Current and longest streak per duo/scope, guarded by <code>last_date</code>.</td></tr>
+              <tr><td><code>cheers</code></td><td>Emoji + optional message from one partner to the other, with a seen flag.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>AI tables</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Table</th><th>Holds</th></tr></thead>
+            <tbody>
+              <tr><td><code>ai_preferences</code></td><td>Per-user personal/duo consent, policy version, mode.</td></tr>
+              <tr><td><code>ai_duo_consents</code></td><td>Per-duo-member consent for Duo Reflection.</td></tr>
+              <tr><td><code>ai_quota_daily</code></td><td>Pseudonymous per-feature daily counters, keyed by a hashed subject rather than a user id.</td></tr>
+              <tr><td><code>ai_project_quota_month</code></td><td>Project-wide monthly reserved spend. No user column at all.</td></tr>
+              <tr><td><code>ai_audit_events</code></td><td>Consent and usage audit metadata — no prompts, no replies.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Two legacy tables, <code>ai_usage_daily</code> and <code>ai_project_usage_month</code>,
+          still exist but are drained by a one-time migration into the pseudonymous pair above.
+          That migration is the reason a delete-and-re-consent cycle cannot be used to reset quota:
+          the retained counter is keyed by a hash that survives the deletion, and it holds no
+          prompts, replies, or raw identifiers.
+        </p>
+
+        <!-- 9 -->
+        <h2 id="web"><span class="num">09</span>Web app</h2>
+        <p>
+          <code>HashRouter</code>, so every route lives after a <code>#</code> and no server rewrite
+          rules are needed. The tree is
+          <code>StrictMode → HashRouter → ToastProvider → App</code>, and <code>App</code> wraps
+          everything in an ambient backdrop and a phone frame.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Route</th><th>Screen</th></tr></thead>
+            <tbody>
+              <tr><td><code>/</code></td><td><strong>Onboarding</strong> — register or sign in, then create or join a duo; polls while waiting for a partner.</td></tr>
+              <tr><td><code>/today</code></td><td><strong>Today</strong> — duo progress, the five module rows, meal sheet, cheer button, coach card.</td></tr>
+              <tr><td><code>/upload</code></td><td><strong>Upload</strong> — proof photo plus module chips.</td></tr>
+              <tr><td><code>/verify/:id</code></td><td><strong>VerifyResult</strong> — verdict, evidence checklist, apply action.</td></tr>
+              <tr><td><code>/potd</code></td><td><strong>Potd</strong> — problem of the day, solution upload, bank, tutor.</td></tr>
+              <tr><td><code>/insights</code></td><td><strong>Insights</strong> — growth ring, subscores, weekly report, AI explanation.</td></tr>
+              <tr><td><code>/profile</code></td><td><strong>Profile</strong> — account, AI mode, privacy panel, sign out.</td></tr>
+              <tr><td><code>*</code></td><td>Falls back to Onboarding.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          <code>api/client.ts</code> is the single network chokepoint: it prefixes <code>/api</code>,
+          reads the session token from <code>sessionStorage</code> under
+          <code>duogrow.session</code>, sends it as <code>x-session</code>, and on a
+          <code>401</code> resets the hash to <code>#/</code>. It throws a typed
+          <code>ApiError</code> carrying the status plus, for AI limits, a <code>reason</code> and
+          <code>retry</code>. The multipart helper deliberately omits <code>Content-Type</code> so
+          the browser sets its own boundary.
+        </p>
+        <h3>Hooks</h3>
+        <ul>
+          <li><code>usePolling</code> — interval fetch returning <code>{data, error, isLoading, refetch}</code>. Pauses while the tab is hidden and refetches on return.</li>
+          <li><code>useCountUp</code> — animates a number to its target, snapping instantly under <code>prefers-reduced-motion</code>.</li>
+          <li><code>usePrivateProofUrl</code> — fetches authenticated proof bytes into a revocable object URL, since proof media is no longer a public path.</li>
+        </ul>
+
+        <!-- 10 -->
+        <h2 id="ai"><span class="num">10</span>The two AI systems</h2>
+        <div class="note note--tip">
+          <p><strong>These are separate products with different providers.</strong> Confusing them
+          is the single easiest mistake to make in this codebase.</p>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <h4>Proof verification — Anthropic</h4>
+            <p>Reads uploaded proof <em>images</em>. Configured by <code>ANTHROPIC_API_KEY</code>.
+            Falls back to a deterministic demo verifier. This is the only component that ever sees
+            proof bytes.</p>
+          </div>
+          <div class="card">
+            <h4>DuoGrow AI coaching — OpenAI</h4>
+            <p>Daily plan, Duo Reflection, POTD tutor, insight explain, ephemeral chat. Configured
+            by <code>OPENAI_API_KEY</code>. Text only. Never receives proof media or proof detail.</p>
+          </div>
+        </div>
+        <h3>Consent</h3>
+        <p>
+          Coaching is <strong>off by default</strong>. A person must opt in before their account can
+          request anything. Duo Reflection additionally requires <em>current</em> consent from both
+          members, and either partner can revoke it in a single save, which immediately blocks new
+          requests. The displayed mode is derived from live server provider availability on every
+          settings response, never from a stale saved value.
+        </p>
+        <h3>What actually gets sent</h3>
+        <p>
+          The browser cannot supply any context payload — the server builds it from an allow-list.
+          General coaching gets numeric goal targets, allow-listed module status/value fields, and
+          aggregate weekly progress. Insight Explain gets only numeric score and risk signals;
+          verifier narratives are never forwarded. POTD Tutor gets the current problem's title,
+          body, topic, and difficulty. No proof media, file paths, user ids, duo ids, or session
+          tokens ever reach the coaching provider.
+        </p>
+        <p>
+          Live calls use the OpenAI Responses API with <code>store: false</code>, no tools, a bounded
+          output, and a timeout. A missing key, provider error, timeout, or malformed response
+          returns clearly labelled demo content rather than pretending a live call succeeded — and a
+          failed keyed attempt rolls its quota reservation back first.
+        </p>
+        <div class="note note--warn">
+          <p><strong><code>store: false</code> is not a Zero Data Retention claim.</strong> It asks
+          the Responses API not to store that response. Provider retention, abuse monitoring, and
+          eligibility for ZDR or Modified Abuse Monitoring must be confirmed in your own OpenAI
+          account and agreement. Keep provider-side spend alerts on; the application caps are
+          reservations, not a pricing promise.</p>
+        </div>
+
+        <!-- 11 -->
+        <h2 id="security"><span class="num">11</span>Security model</h2>
+        <h3>Credentials</h3>
+        <p>
+          Secrets are 8–256 bytes, salted and hashed with Node's async <code>scrypt</code>, compared
+          in constant time. Plaintext is never stored or returned. Session tokens are stored as
+          SHA-256 hashes, not usable raw tokens. A duplicate display name cannot mint a session, and
+          legacy rows without a credential cannot be logged into by name alone.
+        </p>
+        <h3>Brute force and CPU</h3>
+        <p>Two layers, because they defend different things:</p>
+        <ul>
+          <li><strong>Per-name attempt limiter</strong> — 10 attempts per 60s per normalized name.
+          At capacity it keeps already-exhausted names denied rather than evicting them (evicting
+          would let an attacker reset a blocked counter), and untracked attempts draw from a small
+          shared per-window budget. A saturated cache therefore degrades protection to a bounded
+          rate instead of removing it or locking everyone out.</li>
+          <li><strong>Credential work gate</strong> — a per-name limiter structurally cannot throttle
+          a flood of <em>distinct</em> names, and registration accepts unlimited distinct names. So
+          both endpoints derive behind a gate capping concurrent scrypt work, refusing excess
+          callers with a <code>503</code> instead of queueing unbounded CPU.</li>
+        </ul>
+        <h3>Proof media</h3>
+        <p>
+          The old public <code>/uploads</code> path is gone. Bytes are reachable only through the
+          authenticated, duo-authorized <code>GET /api/proofs/:id/file</code>; a requester outside
+          the proof's duo gets a not-found. File resolution is realpath-confined to the uploads
+          directory. Successful responses carry <code>Cache-Control: private, no-store</code> and
+          <code>Vary: x-session</code> so shared caches cannot serve one member's media to another.
+        </p>
+
+        <!-- 12 -->
+        <h2 id="testing"><span class="num">12</span>Testing &amp; CI</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>Server</th><th>Web</th></tr></thead>
+            <tbody>
+              <tr><td>Runner</td><td>Node's built-in <code>node:test</code> via <code>tsx --test</code></td><td>Vitest + Testing Library</td></tr>
+              <tr><td>Config</td><td>None — pattern <code>src/**/*.test.ts</code></td><td>Inside <code>web/vite.config.ts</code>, jsdom</td></tr>
+              <tr><td>Files</td><td>11</td><td>13</td></tr>
+              <tr><td>Tests passing</td><td><strong>62</strong></td><td><strong>56</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Server coverage is concentrated where the risk is: AI routes, auth, policy, limits,
+          context minimization, sessions, and the credential guards. <code>Onboarding.tsx</code> and
+          most presentational components have no direct test file.
+        </p>
+        <p>
+          CI is <code>.github/workflows/quality.yml</code>, running on every push and pull request:
+          three <code>npm ci</code> installs, then <code>npm run test:server</code>, then
+          <code>npm run verify:ci</code>. The server step exists because <code>verify</code> is
+          web-only — without it the entire AI and auth layer would ship untested.
+        </p>
+
+        <!-- 13 -->
+        <h2 id="deploy"><span class="num">13</span>Deployment</h2>
+        <p>
+          Render, one free web service, configured by <code>render.yaml</code>. Every push to the
+          default branch redeploys. Live at
+          <a href="https://duogrow.onrender.com">duogrow.onrender.com</a>.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Setting</th><th>Value and why</th></tr></thead>
+            <tbody>
+              <tr><td>Build</td><td>Installs all three packages with <code>--include=dev</code>, then builds the web app.</td></tr>
+              <tr><td>Start</td><td><code>seed &amp;&amp; npm start</code> — sequential, so there is no DB write overlap.</td></tr>
+              <tr><td>Health check</td><td><code>/api/health</code></td></tr>
+              <tr><td><code>NODE_VERSION</code></td><td>22.18.0, pinned so <code>--env-file-if-exists</code> is recognised.</td></tr>
+              <tr><td>Deliberately unset</td><td><code>PORT</code> (Render injects it), <code>API_PORT</code> (would override and break the health check), <code>DATA_DIR</code>, and the provider keys.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note note--warn">
+          <p><strong><code>--include=dev</code> is not optional.</strong> Render sets
+          <code>NODE_ENV=production</code>, which makes <code>npm install</code> skip
+          devDependencies. Without the flag the build dies with <code>vite: command not found</code>.</p>
+        </div>
+        <div class="note note--dark">
+          <p><strong>The start command re-seeds on every deploy, which wipes the users table.</strong>
+          That was harmless when accounts were disposable, but people can now register real
+          credentials — and any account created between deploys is destroyed by the next push. If
+          this stops being a pure demo, drop <code>seed</code> from the start command or gate it
+          behind a first-boot check.</p>
+        </div>
+
+        <!-- 14 -->
+        <h2 id="gotchas"><span class="num">14</span>Gotchas</h2>
+        <p>Hard-won details that will otherwise cost you an afternoon.</p>
+
+        <h3>A blank Today screen usually is not a bug</h3>
+        <p>
+          <code>usePolling</code> pauses while <code>document.hidden</code> is true. If the tab is
+          not focused and compositing — very common under headless or automated browsers — the
+          screen sits on grey skeletons forever and <code>/api/today</code> is never requested. It
+          looks exactly like a broken deploy. Keep the tab visible, or force it:
+        </p>
+<pre><code>Object.defineProperty(document, 'hidden', { configurable: true, get: () =&gt; false })
+document.dispatchEvent(new Event('visibilitychange'))</code></pre>
+
+        <h3><code>--env-file</code> does not override real env vars</h3>
+        <p>
+          Node fills in only what is missing. A variable already present in the process environment
+          beats the file — which is precisely why <code>harness:isolated</code> can hand a temp
+          <code>DATA_DIR</code> to a server whose <code>.env</code> also declares one. Relying on the
+          opposite will silently point a "safe" run at your real database.
+        </p>
+
+        <h3><code>API_PORT</code> outranks <code>PORT</code> on purpose</h3>
+        <p>
+          The browser-preview harness injects <code>PORT=5173</code>, which would otherwise steal the
+          API's port. Keep <code>API_PORT=8787</code> locally and leave it unset on Render. Also note
+          <code>Number(API_PORT || PORT) || 8787</code> silently falls back to 8787 for a
+          non-numeric or zero value.
+        </p>
+
+        <h3>Sessions are per tab</h3>
+        <p>
+          The token lives in <code>sessionStorage</code>. Two tabs are two independent sessions —
+          that is what makes the two-person demo possible in one browser. It also means a second tab
+          will not inherit your sign-in, and a private window is required to test both partners if
+          you want them isolated.
+        </p>
+
+        <h3>Multipart is buffered before the cap is checked</h3>
+        <p>
+          The 5 MB proof and 10 MB POTD limits are applied <em>after</em> the body is fully read into
+          memory. The JSON routes use a streaming bounded reader that cancels early; multipart does
+          not. Worth knowing before exposing uploads to untrusted traffic.
+        </p>
+
+        <h3>Demo mode is the default, everywhere</h3>
+        <p>
+          No keys means no billable calls — the deterministic verifier and demo coaching keep the
+          whole product testable offline. <code>GET /api/health</code> reports the active proof mode
+          and the Profile screen shows it. Verify this before any demo you do not want to pay for.
+        </p>
+
+        <footer>
+          Generated 27 July 2026 at revision <code>c87162c</code>. Companion documents:
+          <code>docs/duogrow-ai.md</code> for AI operations, <code>HANDOVER.md</code> for the pitch
+          and ops runbook, <code>SPEC.md</code> for architecture and AI contracts.
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

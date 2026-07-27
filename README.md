@@ -8,6 +8,9 @@ duo streak, and growth score update live for both of you.
 
 > **Presenting or continuing this project?** See **[HANDOVER.md](HANDOVER.md)** —
 > pitch script, demo runbook, architecture, ops, backlog, and Codex CLI setup.
+>
+> **Building on it?** See **[docs/dev-manual.html](docs/dev-manual.html)** — the developer
+> manual: API reference, schema, environment, security model, and the gotchas.
 
 ## Run it
 
@@ -51,8 +54,9 @@ See [HANDOVER.md](HANDOVER.md) for the live URL and the full ops guide.
 
 1. `npm run reset` — restore pristine demo state (safe to re-run between rehearsals).
 2. Open **two tabs** of http://localhost:5173 side by side (sessions are per-tab).
-3. Tab A: continue as **Sreya** · Tab B: continue as **Sai** (both seeded + already paired) —
-   or register fresh names and pair live with the invite code for the full flow.
+3. Tab A: sign in as **Sreya** / `demo-sreya` · Tab B: **Sai** / `demo-sai` (both seeded +
+   already paired) — or register fresh names and pair live with the invite code for the
+   full flow. Sign-in now requires a secret; the seeded pair are demo-only credentials.
 4. Tab B (Sai): Upload Proof → pick any workout screenshot → *Analyzing…* →
    **Verified ✓** with evidence + coach line → dashboard auto-updates, streak 6 → 7.
    Watch Tab A update within 3 seconds.
