@@ -60,11 +60,25 @@ Duo-scoped, session-authenticated. Returns one payload covering every chart so
 the dashboard makes a single request:
 
 - `range` — resolved `from`, `to`, and `days`
-- `series` — per day, per member: completion percentage and growth score
-- `calendar` — per day, per member: a completion band for the heatmap
-- `modules` — per module, per member: totals and averages across the range
-- `comparison` — the same aggregates for the immediately preceding period of
-  equal length, so the UI can render deltas without a second request
+- `members` — id and name; every other array is positionally parallel to this
+  one, so the client never needs an id lookup map
+- `series` — per day, per member: completion
+- `modules` — per module, per member: averages and completed-day counts
+- `current` / `previous` — growth score, subscores, and mean completion for this
+  period and the immediately preceding period of equal length, so the UI renders
+  deltas without a second request
+
+Two shape decisions made during implementation:
+
+**Growth score is per period, not per day.** It is defined over a window, so a
+daily value would be noise rather than a trend — and computing one per day would
+mean 365 windowed aggregations per request. The per-day series carries
+completion, which is genuinely a daily quantity.
+
+**There is no `calendar` field.** The heatmap is derived client-side from
+`series`, which already holds exactly the per-day per-member numbers it needs.
+Shipping the same data twice under two names would invite the two copies to
+disagree.
 
 `days` is validated against an explicit allow-list. Anything else is rejected
 rather than clamped, so a malformed value cannot silently produce a different
@@ -82,12 +96,15 @@ Both endpoints are read-only and duo-scoped through the caller's `duo_id`.
 cover the access patterns.
 
 Score maths must not be reimplemented — two definitions of "growth score" that
-drift apart would be worse than no dashboard. But `lib/weeklyStats.ts` is built
-around a fixed 7-day window, so it cannot serve a 90- or 365-day range as-is.
-The implementation plan must first establish whether its window is genuinely
-parameterisable or whether the range aggregation belongs in a new module that
-delegates to `lib/scoring.ts` for the per-period maths. Reuse is the requirement;
-the mechanism is an open implementation question, not a settled one.
+drift apart would be worse than no dashboard.
+
+**Resolved during implementation:** `computeDuoGrowth(duoId, members, streak, days)`
+already accepts its window as a `days: string[]` parameter and queries
+`BETWEEN days[0] AND days[last]`. Only its doc comment claims "last 7 days"; the
+function itself is range-agnostic. `lastNDays(n, endDate)` is likewise
+parameterised. Reuse is therefore direct — a new aggregation module was not
+needed. `lib/analytics.ts` composes these existing functions and adds only the
+per-day completion roll-up they do not provide.
 
 ### Freshness
 
