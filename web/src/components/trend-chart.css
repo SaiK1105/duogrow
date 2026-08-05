@@ -1,0 +1,52 @@
+.trend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.trend__svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.trend__grid {
+  stroke: var(--surface-border);
+  stroke-width: 1;
+}
+
+.trend__axis-text {
+  fill: var(--text-tertiary);
+  font-family: var(--font-ui);
+  font-size: 11px;
+}
+
+.trend__line {
+  filter: drop-shadow(0 0 6px oklch(70% 0.2 150 / 0.25));
+}
+
+.trend__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.trend__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+}
+
+.trend__swatch {
+  width: 12px;
+  height: 3px;
+  border-radius: var(--radius-full);
+}
+
+.trend__description {
+  font-size: var(--text-caption);
+  color: var(--text-tertiary);
+  line-height: var(--leading-snug);
+}

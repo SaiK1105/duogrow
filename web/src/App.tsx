@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { AmbientBackdrop } from './components/AmbientBackdrop'
 import { PhoneFrame } from './components/PhoneFrame'
@@ -13,9 +14,27 @@ import { Profile } from './screens/Profile'
 // Screens that show the floating tab bar.
 const TAB_ROUTES = ['/today', '/potd', '/insights', '/profile', '/upload']
 
+// Desktop-only analytics surface. It is deliberately absent from TAB_ROUTES and
+// code-split: the bundle is already at budget and gets wrapped into the native
+// mobile apps, where this route is unreachable and must not cost anything.
+const DASHBOARD_ROUTE = '/dashboard'
+const Dashboard = lazy(() =>
+  import('./screens/Dashboard').then((module) => ({ default: module.Dashboard })),
+)
+
 function App() {
   const location = useLocation()
   const showTabs = TAB_ROUTES.includes(location.pathname)
+
+  // The dashboard renders outside AmbientBackdrop/PhoneFrame — it is a wide
+  // desktop page, not a phone screen.
+  if (location.pathname === DASHBOARD_ROUTE) {
+    return (
+      <Suspense fallback={<p className="screen">Loading dashboard…</p>}>
+        <Dashboard />
+      </Suspense>
+    )
+  }
 
   return (
     <>

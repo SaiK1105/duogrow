@@ -21,7 +21,7 @@ afterEach(() => {
 
 it('opens coaching without attaching proof media or proof data', async () => {
   const user = userEvent.setup()
-  mockedApi.getProof.mockResolvedValue({ proof: { id: 'proof-id', url: '/secret-proof.jpg', module: 'study', aiStatus: 'verified', aiConfidence: 0.9, band: 'high', evidence: ['raw evidence'], metrics: { raw: 'detail' }, coachMessage: 'Nice work', summary: 'Raw proof detail', appliedUpdate: null, createdAt: '2026-07-22T00:00:00.000Z' } })
+  mockedApi.getProof.mockResolvedValue({ proof: { id: 'proof-id', url: '/secret-proof.jpg', module: 'study', aiStatus: 'verified', aiConfidence: 90, band: 'high', evidence: ['raw evidence'], metrics: { raw: 'detail' }, coachMessage: 'Nice work', summary: 'Raw proof detail', appliedUpdate: null, createdAt: '2026-07-22T00:00:00.000Z' } })
   mockedApi.proofFile.mockResolvedValue(new Blob(['proof'], { type: 'image/jpeg' }))
   mockedApi.aiSettings.mockResolvedValue(settings)
   mockedApi.dailyPlan.mockResolvedValue({ text: 'Plan', mode: 'demo', remaining: 2, estimatedCostCents: 0 })
@@ -38,7 +38,7 @@ it('opens coaching without attaching proof media or proof data', async () => {
 })
 
 it('keeps the verification result visible when AI settings are unavailable', async () => {
-  mockedApi.getProof.mockResolvedValue({ proof: { id: 'proof-id', url: '/secret-proof.jpg', module: 'study', aiStatus: 'verified', aiConfidence: 0.9, band: 'high', evidence: [], metrics: {}, coachMessage: '', summary: 'Summary', appliedUpdate: null, createdAt: '2026-07-22T00:00:00.000Z' } })
+  mockedApi.getProof.mockResolvedValue({ proof: { id: 'proof-id', url: '/secret-proof.jpg', module: 'study', aiStatus: 'verified', aiConfidence: 90, band: 'high', evidence: [], metrics: {}, coachMessage: '', summary: 'Summary', appliedUpdate: null, createdAt: '2026-07-22T00:00:00.000Z' } })
   mockedApi.proofFile.mockResolvedValue(new Blob(['proof'], { type: 'image/jpeg' }))
   mockedApi.aiSettings.mockRejectedValue(new Error('Unavailable'))
 

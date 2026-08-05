@@ -310,6 +310,8 @@ docs/               this manual, duogrow-ai.md, plans and specs</code></pre>
               <tr><td><span class="method m-post">POST</span></td><td><code>/api/cheers</code></td><td>Send a cheer to your partner</td><td><span class="pill pill--yes">yes</span></td></tr>
               <tr><td><span class="method m-post">POST</span></td><td><code>/api/cheers/:id/seen</code></td><td>Mark a cheer seen</td><td><span class="pill pill--yes">yes</span></td></tr>
               <tr><td><span class="method m-get">GET</span></td><td><code>/api/insights</code></td><td>Growth score, subscores, verifier narrative</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/analytics/summary</code></td><td>Every dashboard chart in one payload. <code>days</code> is an allow-list: 30, 90, or 365</td><td><span class="pill pill--yes">yes</span></td></tr>
+              <tr><td><span class="method m-get">GET</span></td><td><code>/api/analytics/proofs</code></td><td>Proof history with module/status filters and cursor paging</td><td><span class="pill pill--yes">yes</span></td></tr>
               <tr><td><span class="method m-get">GET</span></td><td><code>/api/ai/settings</code></td><td>Consent flags, usage, remaining budget</td><td><span class="pill pill--yes">yes</span></td></tr>
               <tr><td><span class="method m-put">PUT</span></td><td><code>/api/ai/settings</code></td><td>Update personal / duo consent</td><td><span class="pill pill--yes">yes</span></td></tr>
               <tr><td><span class="method m-del">DELETE</span></td><td><code>/api/ai/data</code></td><td>Delete your AI subsystem data</td><td><span class="pill pill--yes">yes</span></td></tr>
@@ -392,6 +394,7 @@ docs/               this manual, duogrow-ai.md, plans and specs</code></pre>
               <tr><td><code>/potd</code></td><td><strong>Potd</strong> — problem of the day, solution upload, bank, tutor.</td></tr>
               <tr><td><code>/insights</code></td><td><strong>Insights</strong> — growth ring, subscores, weekly report, AI explanation.</td></tr>
               <tr><td><code>/profile</code></td><td><strong>Profile</strong> — account, AI mode, privacy panel, sign out.</td></tr>
+              <tr><td><code>/dashboard</code></td><td><strong>Dashboard</strong> — desktop-first analytics. Renders outside the phone frame, is lazy-loaded, and is deliberately absent from the tab bar.</td></tr>
               <tr><td><code>*</code></td><td>Falls back to Onboarding.</td></tr>
             </tbody>
           </table>
@@ -501,8 +504,8 @@ docs/               this manual, duogrow-ai.md, plans and specs</code></pre>
             <tbody>
               <tr><td>Runner</td><td>Node's built-in <code>node:test</code> via <code>tsx --test</code></td><td>Vitest + Testing Library</td></tr>
               <tr><td>Config</td><td>None — pattern <code>src/**/*.test.ts</code></td><td>Inside <code>web/vite.config.ts</code>, jsdom</td></tr>
-              <tr><td>Files</td><td>11</td><td>13</td></tr>
-              <tr><td>Tests passing</td><td><strong>62</strong></td><td><strong>56</strong></td></tr>
+              <tr><td>Files</td><td>12</td><td>13+</td></tr>
+              <tr><td>Tests passing</td><td><strong>71</strong></td><td><strong>56+</strong></td></tr>
             </tbody>
           </table>
         </div>

@@ -138,7 +138,7 @@ describe('Upload', () => {
       url: '/proof.jpg',
       module: 'workout',
       aiStatus: 'verified',
-      aiConfidence: 0.96,
+      aiConfidence: 96,
       band: 'high',
       evidence: [],
       metrics: {},

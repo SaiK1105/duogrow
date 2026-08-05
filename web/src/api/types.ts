@@ -225,6 +225,70 @@ export interface InsightsResponse {
   weeklyVerdict: string
 }
 
+// ----- Analytics (web dashboard only — never reached from the phone shell) -----
+export type AnalyticsRangeDays = 30 | 90 | 365
+
+export interface AnalyticsMember {
+  userId: string
+  name: string
+}
+
+/** `values` is parallel to `members`, so no id lookup map is needed client-side. */
+export interface AnalyticsDayPoint {
+  date: string
+  values: number[]
+}
+
+export interface AnalyticsModuleRow {
+  module: ModuleKey
+  /** 0..1 mean completion per member, parallel to `members`. */
+  averages: number[]
+  doneDays: number[]
+}
+
+export interface AnalyticsPeriod {
+  from: string
+  to: string
+  growthScore: number
+  subscores: Subscores
+  /** 0..1 mean completion per member, parallel to `members`. */
+  completion: number[]
+}
+
+export interface AnalyticsSummary {
+  range: { from: string; to: string; days: number }
+  members: AnalyticsMember[]
+  series: AnalyticsDayPoint[]
+  modules: AnalyticsModuleRow[]
+  current: AnalyticsPeriod
+  previous: AnalyticsPeriod
+}
+
+export interface AnalyticsProof {
+  id: string
+  userId: string
+  date: string
+  module: string | null
+  status: string
+  confidence: number | null
+  band: Band | null
+  summary: string | null
+  createdAt: string
+}
+
+export interface AnalyticsProofPage {
+  proofs: AnalyticsProof[]
+  /** Opaque — pass back verbatim as `cursor`. */
+  nextCursor: string | null
+}
+
+export interface AnalyticsProofQuery {
+  module?: ModuleKey
+  status?: AiStatus
+  limit?: number
+  cursor?: string
+}
+
 // ----- Weekly report -----
 export interface WeeklyReport {
   studyTime: number

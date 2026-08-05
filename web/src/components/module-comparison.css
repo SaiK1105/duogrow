@@ -1,0 +1,78 @@
+.modcmp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.modcmp__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.modcmp__group-label {
+  font-size: var(--text-micro);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.modcmp__bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.modcmp__row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.modcmp__bar-label {
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modcmp__track {
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--surface-highlight);
+  overflow: hidden;
+}
+
+.modcmp__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--duration-slow) var(--ease-out-expo);
+}
+
+.modcmp__value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 4.5rem;
+}
+
+.modcmp__detail {
+  font-family: var(--font-ui);
+  font-size: var(--text-micro);
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modcmp__fill {
+    transition: none;
+  }
+}

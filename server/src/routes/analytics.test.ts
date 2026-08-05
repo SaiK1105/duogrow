@@ -68,7 +68,7 @@ function logEntry(duoId: string, userId: string, date: string, module: string, s
   ).run(`de_${userId}_${date}_${module}`, userId, duoId, date, module, status, new Date().toISOString());
 }
 
-function get(path: string, token: string): Promise<Response> {
+async function get(path: string, token: string): Promise<Response> {
   return app.request(`http://localhost/api/analytics${path}`, { headers: { "x-session": token } });
 }
 

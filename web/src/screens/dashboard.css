@@ -1,0 +1,155 @@
+/* Desktop-first analytics surface. This screen renders outside the phone frame,
+   so it owns its own page padding and max width. */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-8) var(--space-16);
+  min-height: 100vh;
+  background: var(--surface-base);
+}
+
+.dashboard__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.dashboard__title {
+  font-family: var(--font-display);
+  font-size: var(--text-display-lg);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+}
+
+.dashboard__sub {
+  margin-top: var(--space-1);
+  font-size: var(--text-caption);
+  color: var(--text-tertiary);
+}
+
+.dashboard__ranges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Multi-column above 1100px, two columns above 800px, stacked below. */
+.dashboard__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+.dashboard__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: var(--space-4);
+}
+
+.dashboard__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+
+.dashboard__notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+  max-width: 42rem;
+}
+
+.dashboard__notice-title {
+  font-family: var(--font-display);
+  font-size: var(--text-display-md);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+}
+
+.dashboard__notice-body {
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  color: var(--text-secondary);
+}
+
+.dashboard__skeleton {
+  height: 320px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-xl);
+  color: var(--text-tertiary);
+  background: linear-gradient(100deg, var(--surface-base), var(--surface-raised), var(--surface-base));
+  background-size: 200% 100%;
+  animation: dashboard-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes dashboard-shimmer {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (min-width: 800px) {
+  .dashboard__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard__stats,
+  .dashboard__card--wide {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1100px) {
+  .dashboard__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dashboard__card--wide {
+    grid-column: span 2;
+  }
+
+  .dashboard__stats {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Still usable on a phone: no redirect, just a tighter gutter. */
+@media (max-width: 640px) {
+  .dashboard {
+    padding: var(--space-5) var(--space-4) var(--space-10);
+    gap: var(--space-5);
+  }
+
+  .dashboard__card {
+    padding: var(--space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard__skeleton {
+    animation: none;
+  }
+}

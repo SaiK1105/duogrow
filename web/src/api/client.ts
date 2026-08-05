@@ -1,4 +1,8 @@
 import type {
+  AnalyticsProofPage,
+  AnalyticsProofQuery,
+  AnalyticsRangeDays,
+  AnalyticsSummary,
   AuthResponse,
   AiGenerationResponse,
   AiLimitReason,
@@ -136,6 +140,17 @@ function isAiLimitRetry(value: unknown): value is AiLimitRetry {
   return value === 'tomorrow' || value === 'next_week' || value === 'next_month'
 }
 
+function analyticsProofSearch(params: AnalyticsProofQuery): string {
+  const search = new URLSearchParams()
+  if (params.module) search.set('module', params.module)
+  if (params.status) search.set('status', params.status)
+  if (params.limit !== undefined) search.set('limit', String(params.limit))
+  // The cursor is opaque; it goes back exactly as the server handed it over.
+  if (params.cursor) search.set('cursor', params.cursor)
+  const query = search.toString()
+  return query ? `?${query}` : ''
+}
+
 async function del(path: string): Promise<void> {
   const res = await fetch(BASE + path, { method: 'DELETE', headers: authHeaders() })
   if (!res.ok) await handle<never>(res)
@@ -195,6 +210,11 @@ export const api = {
   // insights / report
   insights: () => get<InsightsResponse>('/insights'),
   weeklyReport: () => get<WeeklyReport>('/report/weekly'),
+
+  // analytics — web dashboard only
+  analyticsSummary: (days: AnalyticsRangeDays) => get<AnalyticsSummary>(`/analytics/summary?days=${days}`),
+  analyticsProofs: (params: AnalyticsProofQuery = {}) =>
+    get<AnalyticsProofPage>(`/analytics/proofs${analyticsProofSearch(params)}`),
 
   // AI coaching — never accepts provider keys; requests use the session header only.
   aiSettings: () => get<AiSettingsResponse>('/ai/settings'),
