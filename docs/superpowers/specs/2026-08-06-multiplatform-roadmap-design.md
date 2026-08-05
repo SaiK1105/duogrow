@@ -53,12 +53,26 @@ Render's free tier sleeps after inactivity, so the first request after idle take
 roughly 50 seconds. Acceptable for a private group; it is the main thing that
 would later justify a paid plan.
 
-### Phase 2 — Auth for mobile
+### Phase 2 — Auth for mobile — **done**
 
-Session tokens live in `sessionStorage`, which on a native shell would sign users
-out on every app restart. Introduce a platform-aware token store: Capacitor
-Preferences on native, `sessionStorage` on web so the existing two-tab demo
-still works.
+Session tokens lived in `sessionStorage`, which a webview discards on teardown,
+so a native shell would have signed people out on every relaunch. Storage now
+sits behind a `PersistentTokenStore` seam in `web/src/api/tokenStore.ts`. Web
+keeps `sessionStorage` so the two-tab demo still works.
+
+Two decisions worth carrying into Phase 3:
+
+- **The seam is injectable, not sniffed.** It would have been possible to detect
+  a `window.Capacitor` global and call Preferences through it. That would mean
+  shipping a native code path no test in this repo can exercise, against an API
+  shape that cannot be verified until the dependency exists. Phase 3 calls
+  `registerTokenStore()` with a real implementation instead.
+- **The cache is the runtime source of truth.** Native storage is async while
+  every request builds its auth header synchronously, so the store hydrates once
+  into an in-memory cache. `hydrateToken()` must be awaited before the first
+  render — a screen mounting mid-hydration reads an empty token and bounces a
+  signed-in person to onboarding. Phase 3 must keep that ordering when it swaps
+  the store in.
 
 ### Phase 3 — Capacitor shells
 
@@ -77,9 +91,9 @@ real one) in favour of real safe-area insets; native camera for proof capture;
 poll backoff driven by Capacitor App lifecycle events rather than only
 `document.hidden`.
 
-### Phase 4 — Analytics dashboard
+### Phase 4 — Analytics dashboard — **done**
 
-See `2026-08-06-analytics-dashboard-design.md`. **Built first.**
+See `2026-08-06-analytics-dashboard-design.md`. Built first, as planned.
 
 ### Phase 5 — Distribution
 
