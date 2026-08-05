@@ -401,9 +401,9 @@ docs/               this manual, duogrow-ai.md, plans and specs</code></pre>
         </div>
         <p>
           <code>api/client.ts</code> is the single network chokepoint: it prefixes <code>/api</code>,
-          reads the session token from <code>sessionStorage</code> under
-          <code>duogrow.session</code>, sends it as <code>x-session</code>, and on a
-          <code>401</code> resets the hash to <code>#/</code>. It throws a typed
+          reads the session token from <code>api/tokenStore.ts</code>, sends it as
+          <code>x-session</code>, and on a <code>401</code> resets the hash to
+          <code>#/</code>. It throws a typed
           <code>ApiError</code> carrying the status plus, for AI limits, a <code>reason</code> and
           <code>retry</code>. The multipart helper deliberately omits <code>Content-Type</code> so
           the browser sets its own boundary.
@@ -587,12 +587,25 @@ document.dispatchEvent(new Event('visibilitychange'))</code></pre>
           non-numeric or zero value.
         </p>
 
-        <h3>Sessions are per tab</h3>
+        <h3>Sessions are per tab, and the cache is the source of truth</h3>
         <p>
-          The token lives in <code>sessionStorage</code>. Two tabs are two independent sessions —
-          that is what makes the two-person demo possible in one browser. It also means a second tab
-          will not inherit your sign-in, and a private window is required to test both partners if
-          you want them isolated.
+          On web the token persists in <code>sessionStorage</code>, so two tabs are two independent
+          sessions — that is what makes the two-person demo possible in one browser. A second tab
+          will not inherit your sign-in.
+        </p>
+        <p>
+          At runtime, though, <code>tokenStore</code> reads from an in-memory cache, not from
+          storage. Writing to <code>sessionStorage</code> from the console therefore does
+          <em>nothing</em> until the next reload — and worse, a running app whose cache is empty will
+          poll unauthenticated, take a <code>401</code>, and clear the value you just wrote. Sign in
+          through the UI, or write the value and reload immediately.
+        </p>
+        <p>
+          The cache exists because native token storage is asynchronous while every request builds
+          its auth header synchronously. <code>hydrateToken()</code> is awaited in
+          <code>main.tsx</code> before the first render: a screen that mounts mid-hydration reads an
+          empty token, which is indistinguishable from being signed out, and would bounce a
+          signed-in person to onboarding.
         </p>
 
         <h3>Multipart is buffered before the cap is checked</h3>

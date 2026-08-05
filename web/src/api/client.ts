@@ -25,7 +25,6 @@ import type {
   WeeklyReport,
 } from './types'
 
-const TOKEN_KEY = 'duogrow.session'
 const BASE = '/api'
 
 export class ApiError extends Error {
@@ -41,18 +40,13 @@ export class ApiError extends Error {
   }
 }
 
-// ===== Session token (sessionStorage — per-tab, so two tabs = two users) =====
-export function getToken(): string | null {
-  return sessionStorage.getItem(TOKEN_KEY)
-}
-
-export function setToken(token: string): void {
-  sessionStorage.setItem(TOKEN_KEY, token)
-}
-
-export function clearToken(): void {
-  sessionStorage.removeItem(TOKEN_KEY)
-}
+// ===== Session token =====
+// Storage lives in tokenStore so a native shell can swap sessionStorage — which
+// a webview discards on teardown — for storage that survives an app relaunch.
+// Re-exported here because this module is the app's API surface; also imported
+// because `export ... from` creates no local binding for authHeaders to call.
+export { getToken, setToken, clearToken } from './tokenStore'
+import { clearToken, getToken } from './tokenStore'
 
 function authHeaders(extra?: HeadersInit): Headers {
   const headers = new Headers(extra)
