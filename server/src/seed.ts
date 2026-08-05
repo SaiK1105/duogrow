@@ -29,6 +29,20 @@ const SOURCE = "Striver SDE Sheet";
 
 const now = new Date().toISOString();
 
+// A deploy must never destroy real accounts. With --if-empty the seed becomes a
+// first-boot bootstrap: it populates a blank database and does nothing to one
+// that already holds users. Without the flag it stays the explicit, destructive
+// demo reset that `npm run reset` relies on.
+if (process.argv.includes("--if-empty")) {
+  const existing = db.prepare<[], { count: number }>(`SELECT COUNT(*) AS count FROM users`).get();
+  const userCount = existing?.count ?? 0;
+  if (userCount > 0) {
+    console.log(`Seed skipped — ${userCount} existing user(s). Run "npm run reset" to force a demo reset.`);
+    process.exit(0);
+  }
+  console.log("No existing users; bootstrapping demo data...");
+}
+
 console.log("Wiping existing data...");
 db.exec(`
   DELETE FROM cheers;

@@ -530,7 +530,7 @@ docs/               this manual, duogrow-ai.md, plans and specs</code></pre>
             <thead><tr><th>Setting</th><th>Value and why</th></tr></thead>
             <tbody>
               <tr><td>Build</td><td>Installs all three packages with <code>--include=dev</code>, then builds the web app.</td></tr>
-              <tr><td>Start</td><td><code>seed &amp;&amp; npm start</code> — sequential, so there is no DB write overlap.</td></tr>
+              <tr><td>Start</td><td><code>seed:if-empty &amp;&amp; npm start</code> — sequential, so there is no DB write overlap. The seed is a first-boot bootstrap, not a reset.</td></tr>
               <tr><td>Health check</td><td><code>/api/health</code></td></tr>
               <tr><td><code>NODE_VERSION</code></td><td>22.18.0, pinned so <code>--env-file-if-exists</code> is recognised.</td></tr>
               <tr><td>Deliberately unset</td><td><code>PORT</code> (Render injects it), <code>API_PORT</code> (would override and break the health check), <code>DATA_DIR</code>, and the provider keys.</td></tr>
@@ -542,12 +542,16 @@ docs/               this manual, duogrow-ai.md, plans and specs</code></pre>
           <code>NODE_ENV=production</code>, which makes <code>npm install</code> skip
           devDependencies. Without the flag the build dies with <code>vite: command not found</code>.</p>
         </div>
-        <div class="note note--dark">
-          <p><strong>The start command re-seeds on every deploy, which wipes the users table.</strong>
-          That was harmless when accounts were disposable, but people can now register real
-          credentials — and any account created between deploys is destroyed by the next push. If
-          this stops being a pure demo, drop <code>seed</code> from the start command or gate it
-          behind a first-boot check.</p>
+        <div class="note note--warn">
+          <p><strong>Data does not survive a deploy, and the seed is no longer why.</strong>
+          The start command uses <code>seed:if-empty</code>, so a database that already holds users
+          is left untouched — a deploy cannot destroy an account. But this service declares no
+          <code>disk:</code>, so its filesystem is ephemeral and the database starts empty after
+          every deploy or restart regardless.</p>
+          <p>The guard is what makes persistence <em>possible</em>; it does not deliver it. To
+          actually keep accounts, attach a Render disk mounted at <code>DATA_DIR</code> (a paid
+          plan) or move storage to a managed database. Until then, treat the live instance as a
+          demo and the seeded credentials as public.</p>
         </div>
 
         <!-- 14 -->

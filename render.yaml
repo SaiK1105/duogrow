@@ -13,9 +13,17 @@ services:
     # `npm install` skip devDependencies (vite, typescript, @types). Without it
     # the web build fails with "vite: command not found".
     buildCommand: npm install --include=dev && npm --prefix server install --include=dev && npm --prefix web install --include=dev && npm --prefix web run build
-    # Seed runs first (fresh demo data on every boot — ephemeral disk is fine),
-    # then the server starts. Sequential via && so there's no DB write overlap.
-    startCommand: npm --prefix server run seed && npm start
+    # Seed runs first, then the server starts. Sequential via && so there's no DB
+    # write overlap. --if-empty makes this a first-boot bootstrap rather than a
+    # reset: a database that already holds users is left untouched, so a deploy
+    # can never destroy a real account.
+    #
+    # NOTE: this service has no `disk:`, so the filesystem is ephemeral and the
+    # database starts empty after every deploy or restart anyway — --if-empty is
+    # what makes persistence possible, not what delivers it. To actually keep
+    # accounts across deploys, attach a Render disk mounted at DATA_DIR (paid) or
+    # move storage to a managed database.
+    startCommand: npm --prefix server run seed:if-empty && npm start
     healthCheckPath: /api/health
     envVars:
       # Pin >=22.9 so Node's --env-file-if-exists flag is recognized.
