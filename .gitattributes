@@ -1,0 +1,9 @@
+# Shell scripts must be stored and checked out with LF, always.
+#
+# Development happens on Windows, where core.autocrlf rewrites line endings on
+# commit. A shell script committed with CRLF fails on Linux with the famously
+# unhelpful `bash: \r: command not found` — the Render deploy and the Gradle
+# wrapper both run on Linux, so this is a deploy-breaker rather than a cosmetic
+# preference.
+*.sh text eol=lf
+gradlew text eol=lf
