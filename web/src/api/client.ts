@@ -25,7 +25,7 @@ import type {
   WeeklyReport,
 } from './types'
 
-const BASE = '/api'
+const BASE = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL)
 
 export class ApiError extends Error {
   status: number
@@ -47,6 +47,7 @@ export class ApiError extends Error {
 // because `export ... from` creates no local binding for authHeaders to call.
 export { getToken, setToken, clearToken } from './tokenStore'
 import { clearToken, getToken } from './tokenStore'
+import { resolveApiBaseUrl } from './baseUrl'
 
 function authHeaders(extra?: HeadersInit): Headers {
   const headers = new Headers(extra)

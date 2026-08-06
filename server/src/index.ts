@@ -1,5 +1,7 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { buildAllowedOrigins, resolveAllowedOrigin } from "./lib/corsOrigins.js";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { isLiveMode } from "./lib/verifier.js";
@@ -17,6 +19,25 @@ import { aiRoutes } from "./routes/ai.js";
 import { healthRoutes, reportRoutes } from "./routes/report.js";
 
 const app = new Hono<AppEnv>();
+
+// A Capacitor webview serves the SPA from its own origin, so every API call it
+// makes is cross-origin. Web production stays single-origin and sends no Origin
+// header, so this middleware is a no-op there. The allow-list is explicit: the
+// session token rides in a header, and a wildcard would let any site a signed-in
+// person visits read authenticated responses.
+const allowedOrigins = buildAllowedOrigins({
+  extra: process.env.CORS_ALLOWED_ORIGINS,
+  includeDev: !process.argv.includes("--serve-web"),
+});
+app.use(
+  "/api/*",
+  cors({
+    origin: (origin) => resolveAllowedOrigin(origin, allowedOrigins),
+    allowHeaders: ["content-type", "x-session"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    maxAge: 600,
+  }),
+);
 
 const api = new Hono<AppEnv>();
 api.route("/auth", authRoutes);

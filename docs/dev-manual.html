@@ -271,6 +271,8 @@ docs/               this manual, duogrow-ai.md, plans and specs</code></pre>
               <tr><td><code>AI_TUTOR_CALLS_PER_USER</code></td><td>5</td><td>POTD tutor requests per user per day.</td></tr>
               <tr><td><code>AI_CHAT_CALLS_PER_USER</code></td><td>10</td><td>Chat requests per user per day.</td></tr>
               <tr><td><code>AI_REFLECTIONS_PER_DUO_PER_WEEK</code></td><td>1</td><td>Duo Reflection requests per duo per week.</td></tr>
+              <tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>unset</td><td>Extra cross-origin callers, comma-separated. The Capacitor webview origins are always allowed; malformed entries are dropped, not trusted.</td></tr>
+              <tr><td><code>VITE_API_BASE_URL</code></td><td>unset</td><td><strong>Build-time, client-side.</strong> API origin for native builds. Leave unset on web to keep requests relative. Never put a secret behind a <code>VITE_</code> prefix — it is compiled into the bundle.</td></tr>
             </tbody>
           </table>
         </div>
@@ -555,6 +557,36 @@ docs/               this manual, duogrow-ai.md, plans and specs</code></pre>
           actually keep accounts, attach a Render disk mounted at <code>DATA_DIR</code> (a paid
           plan) or move storage to a managed database. Until then, treat the live instance as a
           demo and the seeded credentials as public.</p>
+        </div>
+
+        <h3>Native shells (iOS + Android)</h3>
+        <p>
+          The same SPA is wrapped by Capacitor. Both native projects live under
+          <code>web/android</code> and <code>web/ios</code> and are committed; the copied web
+          assets inside them are generated and gitignored. Build with:
+        </p>
+<pre><code>npm --prefix web run mobile:sync      # build + cap sync
+npm --prefix web run mobile:android   # open in Android Studio
+npm --prefix web run mobile:ios       # open in Xcode (macOS only)</code></pre>
+        <p>
+          Three things differ from the web build. Requests are cross-origin, because the webview
+          serves from <code>capacitor://localhost</code> (iOS) or <code>https://localhost</code>
+          (Android) — both on the server's CORS allow-list. The API origin must be set at build
+          time via <code>VITE_API_BASE_URL</code>, since a relative path resolves against the app
+          bundle. And the session token persists through Capacitor Preferences rather than
+          <code>sessionStorage</code>, which a webview discards on teardown.
+        </p>
+        <p>
+          <code>PhoneFrame</code> is replaced by <code>NativeShell</code> on device: the hardware
+          already provides the bezel and the OS the status bar, so the simulated ones would be a
+          fake phone drawn inside a real one. Only the chrome changes — every screen is identical.
+        </p>
+        <div class="note note--warn">
+          <p><strong>Android builds on any OS; iOS needs a Mac.</strong> The Xcode project is
+          generated and committed so a Mac can build it immediately, but compiling and signing iOS
+          requires macOS, and putting it on someone's iPhone requires the Apple Developer Program
+          at $99/year. Android has neither constraint — a signed APK builds on Windows and can be
+          shared directly.</p>
         </div>
 
         <!-- 14 -->

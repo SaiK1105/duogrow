@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DuoGrow</string>
+    <string name="title_activity_main">DuoGrow</string>
+    <string name="package_name">com.duogrow.app</string>
+    <string name="custom_url_scheme">com.duogrow.app</string>
+</resources>

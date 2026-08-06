@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { AmbientBackdrop } from './components/AmbientBackdrop'
 import { PhoneFrame } from './components/PhoneFrame'
+import { NativeShell } from './components/NativeShell'
+import { isNativePlatform } from './lib/platform'
 import { TabBar } from './components/TabBar'
 import { Onboarding } from './screens/Onboarding'
 import { Today } from './screens/Today'
@@ -36,10 +38,15 @@ function App() {
     )
   }
 
+  // On a native shell the device already provides the bezel and the status bar,
+  // so PhoneFrame would draw a fake phone (and a fake clock) inside a real one.
+  // The screens themselves are unchanged; only the chrome around them differs.
+  const Shell = isNativePlatform() ? NativeShell : PhoneFrame
+
   return (
     <>
-      <AmbientBackdrop />
-      <PhoneFrame>
+      {!isNativePlatform() && <AmbientBackdrop />}
+      <Shell>
         <div className="screen-scroll">
           <Routes>
             <Route path="/" element={<Onboarding />} />
@@ -53,7 +60,7 @@ function App() {
           </Routes>
           {showTabs && <TabBar />}
         </div>
-      </PhoneFrame>
+      </Shell>
     </>
   )
 }

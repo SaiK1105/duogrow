@@ -74,7 +74,24 @@ Two decisions worth carrying into Phase 3:
   signed-in person to onboarding. Phase 3 must keep that ordering when it swaps
   the store in.
 
-### Phase 3 — Capacitor shells
+### Phase 3 — Capacitor shells — **done**
+
+Both native projects are scaffolded and committed (`web/android`, `web/ios`).
+Capacitor 8 uses SPM rather than CocoaPods, so the Xcode project generated
+cleanly on Windows — iOS is build-ready without a Mac having touched it.
+
+Verified at runtime, not just in unit tests: both webview origins are echoed,
+a hostile origin and the dev origin receive no `Access-Control-Allow-Origin`
+header at all, the preflight permits `x-session`, and same-origin requests with
+no `Origin` header are byte-for-byte unchanged.
+
+Deferred deliberately, and not silently: **native camera capture** and
+**lifecycle-driven poll backoff**. Both need a physical device to verify, and
+shipping unexercised native paths is the thing Phase 2 explicitly avoided.
+`usePolling` already pauses on `document.hidden`, which a webview does fire on
+background, so the app is correct without the lifecycle hook — just not optimal.
+
+#### Original plan
 
 Two backend changes the wrap forces, neither of which is packaging work:
 
