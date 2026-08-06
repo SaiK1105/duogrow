@@ -42,7 +42,29 @@ blocker. Android ships first.
 Each phase is independently useful. Phase 4 is fully independent of 1–3 and is
 being built first because it blocks nothing and is the most visible.
 
-### Phase 1 — Persistence
+### Phase 1 — Persistence — **code done, awaiting credentials**
+
+Implemented in `litestream.yml` + `scripts/litestream/`. Render's build fetches
+the Litestream binary; the start script restores from R2, seeds only if the
+database is genuinely empty, then runs the server under `litestream replicate
+-exec`.
+
+Two things worth carrying forward:
+
+- **`sync-interval` is pinned to 60s.** Litestream's 1s default is ~2.6M Class A
+  operations a month against R2's 1M free allowance — the default alone would
+  put the account into paid overage. 60s is ~43k/month, about 4%. The cost is up
+  to a minute of data loss on an unclean exit.
+- **A failed restore aborts the boot.** `-if-db-not-exists` and
+  `-if-replica-exists` make the legitimate cases exit zero, so anything else is
+  a real fault. Booting anyway would serve an empty database, which looks
+  exactly like having lost every account.
+
+Not yet verifiable: nothing here has run against a real bucket. The first deploy
+with credentials present is the test, and the log line to look for is
+`[litestream] database present at …` rather than the disabled warning.
+
+#### Original plan
 
 Litestream replicates the SQLite file to Cloudflare R2 and restores it on boot.
 Pairs with the `seed:if-empty` guard already shipped, which stops a deploy from
