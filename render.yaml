@@ -12,26 +12,40 @@ services:
     # --include=dev is REQUIRED: Render sets NODE_ENV=production, which makes
     # `npm install` skip devDependencies (vite, typescript, @types). Without it
     # the web build fails with "vite: command not found".
-    buildCommand: npm install --include=dev && npm --prefix server install --include=dev && npm --prefix web install --include=dev && npm --prefix web run build
-    # Seed runs first, then the server starts. Sequential via && so there's no DB
-    # write overlap. --if-empty makes this a first-boot bootstrap rather than a
-    # reset: a database that already holds users is left untouched, so a deploy
-    # can never destroy a real account.
+    buildCommand: npm install --include=dev && npm --prefix server install --include=dev && npm --prefix web install --include=dev && npm --prefix web run build && bash scripts/litestream/install.sh
+    # Boot sequence lives in a script because it has real branching: restore from
+    # R2, seed only if the database is genuinely empty, then run the server under
+    # Litestream so writes keep replicating.
     #
-    # NOTE: this service has no `disk:`, so the filesystem is ephemeral and the
-    # database starts empty after every deploy or restart anyway — --if-empty is
-    # what makes persistence possible, not what delivers it. To actually keep
-    # accounts across deploys, attach a Render disk mounted at DATA_DIR (paid) or
-    # move storage to a managed database.
-    startCommand: npm --prefix server run seed:if-empty && npm start
+    # This is what makes the free tier durable. The instance filesystem is
+    # ephemeral (no `disk:` below), so the database is gone after every deploy,
+    # restart, or wake-from-sleep; Litestream restores it from R2 on boot. The
+    # seed:if-empty guard means a restored database is never overwritten.
+    #
+    # Without the R2 variables set the script degrades to the old ephemeral
+    # behaviour and says so loudly in the log, so this stays deployable before
+    # the bucket exists.
+    startCommand: bash scripts/litestream/start.sh
     healthCheckPath: /api/health
     envVars:
       # Pin >=22.9 so Node's --env-file-if-exists flag is recognized.
       - key: NODE_VERSION
         value: 22.18.0
+      # Explicit so litestream.yml and server/src/db.ts cannot disagree about
+      # where the database lives — they both derive it from DATA_DIR.
+      - key: DATA_DIR
+        value: /tmp/duogrow
+      # R2 credentials for Litestream. Set these in the Render dashboard, never
+      # here: a value committed to a blueprint is a published secret.
+      #   R2_BUCKET            e.g. duogrow
+      #   R2_ENDPOINT          https://<account-id>.r2.cloudflarestorage.com
+      #   R2_ACCESS_KEY_ID     from an R2 API token (Object Read & Write)
+      #   R2_SECRET_ACCESS_KEY shown once when the token is created
+      # Until all four are present the service runs without persistence and logs
+      # that it is doing so.
+      #
       # Deliberately NOT set here:
       #   PORT     — Render injects it automatically; the server reads it.
       #   API_PORT — would override Render's PORT and break the health check.
-      #   DATA_DIR — defaults to ~/.duogrow on the instance (works out of the box).
       #   ANTHROPIC_API_KEY — leave unset to run the deterministic demo verifier.
       #                       Add it in the Render dashboard to enable live AI.

@@ -1,0 +1,40 @@
+# Litestream continuously replicates the SQLite database to Cloudflare R2 and
+# restores it on boot. This is what makes the Render free tier durable: the
+# instance filesystem is ephemeral, so without this the database is empty after
+# every deploy, restart, or wake-from-sleep.
+#
+# Environment variables are expanded by Litestream itself (expansion is on by
+# default; `-no-expand-env` would disable it). Credentials therefore live only in
+# Render's environment, never in this file.
+
+dbs:
+  # Matches server/src/db.ts, which opens `${DATA_DIR}/duogrow.sqlite`.
+  - path: ${DATA_DIR}/duogrow.sqlite
+
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: duogrow
+      endpoint: ${R2_ENDPOINT}
+      # R2 ignores the region but the S3 client requires one.
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+
+      # Litestream's default is 1s, which would be the single biggest cost risk
+      # here: one write per second is ~2.6M Class A operations a month against a
+      # 1M free allowance, so the default alone would push this account into
+      # paid overage. At 60s the ceiling is ~43k/month — roughly 4% of the
+      # allowance, with 20x headroom.
+      #
+      # The trade-off is bounded data loss: an instance that dies mid-minute can
+      # lose up to 60s of writes. For a two-person accountability app that is a
+      # few module check-ins, and it is the right side of the trade against an
+      # unexpected bill.
+      sync-interval: 60s
+
+    snapshot:
+      # A full snapshot daily, keeping three days. Snapshots cost ~30 Class A
+      # operations a month and a few MB of the 10GB storage allowance.
+      interval: 24h
+      retention: 72h

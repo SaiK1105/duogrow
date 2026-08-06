@@ -272,6 +272,7 @@ docs/               this manual, duogrow-ai.md, plans and specs</code></pre>
               <tr><td><code>AI_CHAT_CALLS_PER_USER</code></td><td>10</td><td>Chat requests per user per day.</td></tr>
               <tr><td><code>AI_REFLECTIONS_PER_DUO_PER_WEEK</code></td><td>1</td><td>Duo Reflection requests per duo per week.</td></tr>
               <tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>unset</td><td>Extra cross-origin callers, comma-separated. The Capacitor webview origins are always allowed; malformed entries are dropped, not trusted.</td></tr>
+              <tr><td><code>R2_BUCKET</code>, <code>R2_ENDPOINT</code>, <code>R2_ACCESS_KEY_ID</code>, <code>R2_SECRET_ACCESS_KEY</code></td><td>unset</td><td>Cloudflare R2 credentials for Litestream on the deployed service. All four required; any missing and persistence is skipped with a loud log line.</td></tr>
               <tr><td><code>VITE_API_BASE_URL</code></td><td>unset</td><td><strong>Build-time, client-side.</strong> API origin for native builds. Leave unset on web to keep requests relative. Never put a secret behind a <code>VITE_</code> prefix — it is compiled into the bundle.</td></tr>
             </tbody>
           </table>
@@ -547,16 +548,37 @@ docs/               this manual, duogrow-ai.md, plans and specs</code></pre>
           <code>NODE_ENV=production</code>, which makes <code>npm install</code> skip
           devDependencies. Without the flag the build dies with <code>vite: command not found</code>.</p>
         </div>
+        <h3>Persistence — Litestream to Cloudflare R2</h3>
+        <p>
+          The service declares no <code>disk:</code>, so its filesystem is ephemeral: the database
+          would be empty after every deploy, restart, or wake-from-sleep. Litestream closes that
+          gap by continuously replicating the SQLite file to R2 and restoring it on boot. The
+          <code>seed:if-empty</code> guard means a restored database is never overwritten.
+        </p>
+        <p>Boot order, in <code>scripts/litestream/start.sh</code>:</p>
+        <ol>
+          <li>Restore from R2 — <code>-if-db-not-exists</code> and <code>-if-replica-exists</code>
+          make a first-ever boot succeed, while a genuine failure (bad credentials, wrong bucket)
+          exits non-zero and <strong>aborts the deploy</strong>. Booting anyway would serve an
+          empty database, which is indistinguishable from having lost everyone's data.</li>
+          <li>Seed only if the users table is empty.</li>
+          <li><code>litestream replicate -exec "npm start"</code>, so Render still supervises one
+          foreground process.</li>
+        </ol>
+        <p>
+          Four variables switch it on: <code>R2_BUCKET</code>, <code>R2_ENDPOINT</code>,
+          <code>R2_ACCESS_KEY_ID</code>, <code>R2_SECRET_ACCESS_KEY</code>. With any of them
+          missing the script skips Litestream, runs exactly as before, and says so loudly — so the
+          service stays deployable before the bucket exists.
+        </p>
         <div class="note note--warn">
-          <p><strong>Data does not survive a deploy, and the seed is no longer why.</strong>
-          The start command uses <code>seed:if-empty</code>, so a database that already holds users
-          is left untouched — a deploy cannot destroy an account. But this service declares no
-          <code>disk:</code>, so its filesystem is ephemeral and the database starts empty after
-          every deploy or restart regardless.</p>
-          <p>The guard is what makes persistence <em>possible</em>; it does not deliver it. To
-          actually keep accounts, attach a Render disk mounted at <code>DATA_DIR</code> (a paid
-          plan) or move storage to a managed database. Until then, treat the live instance as a
-          demo and the seeded credentials as public.</p>
+          <p><strong>The 1-second default would have cost money.</strong> Litestream syncs every
+          <code>1s</code> out of the box. That is ~2.6M Class A operations a month against R2's
+          1M free allowance — the default alone pushes the account into paid overage. The config
+          pins <code>sync-interval: 60s</code>, about 43k/month or 4% of the allowance.</p>
+          <p>The trade is bounded data loss: an instance that dies mid-minute loses up to 60
+          seconds of writes. Storage is a non-issue — a few MB of SQLite plus three days of daily
+          snapshots against a 10GB allowance.</p>
         </div>
 
         <h3>Native shells (iOS + Android)</h3>
